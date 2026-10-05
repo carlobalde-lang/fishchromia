@@ -68,5 +68,7 @@ chooseMode().then(async mode=>{window.bettaMode=mode;window.fishCollection=await
     await loadScript('./collection-ui.js');
     window.bettaLoading.update(12,'Preparazione del modello 3D…');
     await loadScript('./three-scene.js');
+    await loadScript('./gameplay-ui.js');
+    await loadScript('./decor-ui.js');
   } catch (error) { window.bettaLoading.fail(error.message); }
 }));});

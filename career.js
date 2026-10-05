@@ -1,5 +1,13 @@
 'use strict';
 window.BettaCareer=(()=>{
+ const regulars=[
+  {id:'ada',name:'Ada',taste:'royal',description:'Ama le livree blu e gli allevamenti con una storia.'},
+  {id:'luca',name:'Luca',taste:'red',description:'Cerca colori rossi intensi.'},
+  {id:'nora',name:'Nora',taste:'turquoise',description:'Colleziona sfumature turchesi.'},
+  {id:'milo',name:'Milo',taste:'black',description:'Preferisce i colori scuri.'},
+  {id:'emma',name:'Emma',taste:'any',description:'Apprezza le generazioni nate nel tuo allevamento.'},
+  {id:'leo',name:'Leo',taste:'any',description:'Ha gusti diversi e segue le nuove scoperte.'}
+ ];
  const starters=['royal','red','black','turquoise'];
  const colors=()=>BettaTypes.colors;
  const byId=id=>colors().find(c=>c.id===id);
@@ -34,13 +42,13 @@ window.BettaCareer=(()=>{
    if(owned.has(key)||seen.has(key))return false;seen.add(key);return true;
   }).map(color=>({id:'stock-'+state.month+'-'+color.id,colorId:color.id,price:starters.includes(color.id)?65:160+Object.keys(color.genes).length*25}));
  }
- function makeOrders(month,discoveries){
+ function makeOrders(month,discoveries,relationships={},reputation=0){
   const pool=Object.keys(discoveries);return Array.from({length:3},(_,i)=>{
    const colorId=pool[(month+i)%pool.length]||'royal';
-   return {id:'order-'+month+'-'+i,colorId,reward:150+i*35,deadline:month+6,status:'available'};
+   return {id:'order-'+month+'-'+i,colorId,customerId:regulars[(month+i)%regulars.length].id,reward:150+i*35+Math.min(200,reputation*2+(relationships[regulars[(month+i)%regulars.length].id]?.purchases||0)*20),deadline:month+6,status:'available'};
   });
  }
- function initial(){const discoveries=Object.fromEntries(starters.map(id=>[id,{month:1,fishId:null,parents:null,starter:true}]));return {version:1,cash:600,reputation:0,capacity:40,shopSlots:4,expansions:0,discoveries,listings:[],visits:[],archive:[],orders:makeOrders(1,discoveries),nextCustomer:1,customerRemaining:20};}
+ function initial(){const discoveries=Object.fromEntries(starters.map(id=>[id,{month:1,fishId:null,parents:null,starter:true}]));return {version:1,regulars:{},contestEntries:[],trophies:[],cash:600,reputation:0,capacity:40,shopSlots:4,expansions:0,discoveries,listings:[],visits:[],archive:[],orders:makeOrders(1,discoveries),nextCustomer:1,customerRemaining:20};}
  function normalize(source,fish,month){
   if(!source||source.version!==1)throw Error('Dati carriera mancanti o non supportati.');
   const c=clone(source),integer=(n,min,max)=>Number.isSafeInteger(n)&&n>=min&&n<=max;
@@ -57,7 +65,21 @@ window.BettaCareer=(()=>{
   if(!Array.isArray(c.visits)||c.visits.length>24||!Array.isArray(c.archive)||c.archive.length>3000)throw Error('Storico negozio non valido.');
   for(const v of c.visits)if(!v||typeof v.name!=='string'||typeof v.message!=='string'||v.name.length>80||v.message.length>300)throw Error('Visita non valida.');
   for(const a of c.archive)if(!a||!integer(a.id,1,1000000000)||typeof a.name!=='string'||a.name.length>120||!integer(a.month,1,month))throw Error('Archivio non valido.');
+  c.regulars??={};c.contestEntries??=[];c.trophies??=[];
+  if(!c.regulars||typeof c.regulars!=='object'||Array.isArray(c.regulars)||Object.keys(c.regulars).some(id=>!regulars.some(r=>r.id===id)))throw Error('Clienti non validi.');
+  for(const v of Object.values(c.regulars))if(!v||!integer(v.visits,0,1000000)||!integer(v.purchases,0,v.visits))throw Error('Cliente non valido.');
+  if(!Array.isArray(c.contestEntries)||c.contestEntries.length>120||!Array.isArray(c.trophies)||c.trophies.length>120)throw Error('Concorsi non validi.');
+  for(const e of [...c.contestEntries,...c.trophies])if(!e||!integer(e.month,1,month)||!integer(e.fishId,1,1000000000)||typeof e.fishName!=='string'||e.fishName.length>120||typeof e.title!=='string'||e.title.length>120||!integer(e.score,0,100)||!['oro','argento','bronzo','partecipazione'].includes(e.medal))throw Error('Risultato concorso non valido.');
+  if(new Set(c.contestEntries.map(e=>e.month)).size!==c.contestEntries.length||new Set(c.trophies.map(e=>e.month)).size!==c.trophies.length)throw Error('Concorso duplicato.');
   return c;
+ }
+ function contest(state){
+  const pool=Object.keys(state.career.discoveries),colorId=pool[(state.month*3)%pool.length]||'royal',short=state.month%4===0,coat=state.month%2===1;
+  return {id:'contest-'+state.month,title:coat?'Festival '+byId(colorId).name:short?'Concorso Plakat':'Concorso Halfmoon',colorId,short,coat};
+ }
+ function contestScore(state,fish){
+  const theme=contest(state),t=BettaTypes.traits(fish),fit=theme.coat?matches(fish).includes(theme.colorId):theme.short?t.short:!t.short&&t.spread>=3;
+  return Math.min(100,(fit?50:0)+Math.min(20,fish.gen*5)+Math.min(10,fish.age*2)+10+Math.abs(fish.seed%11));
  }
  function discover(state,batch){
   for(const fish of batch)for(const id of matches(fish))if(!state.career.discoveries[id]){
@@ -77,6 +99,7 @@ window.BettaCareer=(()=>{
   if(state.mode!=='career')throw Error('Questa azione è disponibile in carriera.');
   const c=state.career,fish=state.fish.find(f=>f.id===Number(data.fishId));
   function spend(n){if(c.cash<n)throw Error('Monete insufficienti.');c.cash-=n;}
+  if(['list','deliver'].includes(action)&&state.tankAssignments?.[fish?.id]==='community')throw Error('Sposta il pesce dall’acquario zero prima di venderlo.');
   if(action==='list'){
    if(!fish||fish.age<4)throw Error('Puoi vendere esemplari adulti da 4 mesi.');
    if(!removable(state,fish))throw Error('Conserva almeno un riproduttore per sesso fuori dal negozio.');
@@ -100,6 +123,14 @@ window.BettaCareer=(()=>{
    if(!o||!fish||fish.age<4||fish.gen<1||!matches(fish).includes(o.colorId)||!removable(state,fish))throw Error('Serve un adulto nato qui con la livrea richiesta, conservando i riproduttori.');
    if(c.listings.some(l=>l.fishId===fish.id)||state.fish.some(f=>f.age===0&&f.parents?.includes(fish.id)))throw Error('Ritira il pesce dalla vendita e attendi eventuale riposo mensile.');
    remove(state,fish,'ordine');o.status='completed';c.cash+=o.reward;c.reputation+=3;state.log.unshift('Ordine consegnato · +'+o.reward+' monete.');
+  }else if(action==='contest'){
+   c.contestEntries??=[];c.trophies??=[];
+   if(c.contestEntries.some(e=>e.month===state.month))throw Error('Hai già partecipato al concorso di questo mese.');
+   if(!fish||fish.age<4||fish.gen<1||c.listings.some(l=>l.fishId===fish.id))throw Error('Iscrivi un adulto nato qui e non in vendita.');
+   const score=contestScore(state,fish),medal=score>=80?'oro':score>=65?'argento':score>=50?'bronzo':'partecipazione',reward={oro:220,argento:140,bronzo:80,partecipazione:0}[medal];
+   const result={month:state.month,fishId:fish.id,fishName:fish.name,title:contest(state).title,score,medal};c.contestEntries.push(result);c.contestEntries=c.contestEntries.slice(-120);
+   if(reward){c.trophies.push(result);c.trophies=c.trophies.slice(-120);c.cash+=reward;c.reputation+=medal==='oro'?3:medal==='argento'?2:1;}
+   state.log.unshift(result.title+': '+score+' punti · '+medal+' · +'+reward+' monete.');
   }else if(action==='expand'){
    if(c.capacity>=3000)throw Error('Capienza massima raggiunta.');spend(250+c.expansions*150);c.expansions++;c.capacity=Math.min(3000,c.capacity+24);
   }else if(action==='shopExpand'){
@@ -109,23 +140,24 @@ window.BettaCareer=(()=>{
  }
  function advance(state){
   const c=state.career;for(const o of c.orders)if(o.deadline<state.month&&['available','accepted'].includes(o.status))o.status='expired';
-  if(state.month%3===1){c.orders=[...c.orders.filter(o=>o.status==='accepted'),...makeOrders(state.month,c.discoveries)];}
+  if(state.month%3===1){c.orders=[...c.orders.filter(o=>o.status==='accepted'),...makeOrders(state.month,c.discoveries,c.regulars,c.reputation)];}
   return state;
  }
  function customer(state,rng=Math.random){
-   const c=state.career,names=['Ada','Luca','Nora','Milo','Emma','Leo','Sofia','Elia'];
-   const number=c.nextCustomer++,wanted=rng()<.35?'any':Object.keys(c.discoveries)[Math.floor(rng()*Object.keys(c.discoveries).length)],budget=80+Math.floor(rng()*360)+c.reputation*3;
+   const c=state.career;
+   const number=c.nextCustomer++,profile=regulars[(number-1)%regulars.length];c.regulars??={};const relationship=c.regulars[profile.id]??={visits:0,purchases:0};relationship.visits++;
+   const wanted=rng()<.35?'any':profile.taste==='any'?Object.keys(c.discoveries)[Math.floor(rng()*Object.keys(c.discoveries).length)]:profile.taste,budget=80+Math.floor(rng()*360)+c.reputation*3+Math.min(100,relationship.purchases*10);
    const candidates=c.listings.map(l=>({l,f:state.fish.find(f=>f.id===l.fishId)})).filter(x=>x.f&&(wanted==='any'||matches(x.f).includes(wanted)));
-   const visit={id:number,name:names[number%names.length],month:state.month,wanted,budget,message:'Nessun pesce corrisponde ai miei gusti.',bought:false};
+   const visit={id:number,customerId:profile.id,name:profile.name,returning:relationship.visits>1,month:state.month,wanted,budget,message:'Nessun pesce corrisponde ai miei gusti.',bought:false};
    if(candidates.length){
     const {l,f}=candidates[Math.floor(rng()*candidates.length)],max=value(f,state.month);visit.fishId=f.id;visit.price=l.price;visit.max=max;
     if(l.price>budget)visit.message='Mi piace, ma supera il mio budget.';
-    else if(removable(state,f)&&rng()<chance(l.price,max)){c.cash+=l.price;c.reputation++;remove(state,f,'vendita');visit.bought=true;visit.message='Acquistato '+f.name+' per '+l.price+' monete.';state.log.unshift(visit.name+': '+visit.message);}
+    else if(removable(state,f)&&rng()<chance(l.price,max)){c.cash+=l.price;c.reputation++;remove(state,f,'vendita');visit.bought=true;relationship.purchases++;visit.message='Acquistato '+f.name+' per '+l.price+' monete.';state.log.unshift(visit.name+': '+visit.message);}
     else visit.message=l.price>max?'Prezzo alto: questa volta non acquisto.':'Oggi preferisco pensarci.';
    }
    c.visits=[visit,...c.visits].slice(0,24);
    c.customerRemaining=(15+rng()*25)/Math.min(2,1+c.reputation/100);
    state.log=state.log.slice(0,5);return state;
  }
- return {starters,initial,normalize,matches,displayName,coatName,signature,value,chance,offers,byId,demand,transact,discover,advance,customer};
+ return {regulars,contest,contestScore,starters,initial,normalize,matches,displayName,coatName,signature,value,chance,offers,byId,demand,transact,discover,advance,customer};
 })();

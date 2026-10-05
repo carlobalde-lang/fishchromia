@@ -16,20 +16,33 @@ window.BettaAppearance = (() => {
     const rand=n=>{const v=Math.sin(seed*.173+n*127.1)*43758.5453;return v-Math.floor(v);};
     const present=k=>(g[k]||'').includes(k);
     const marble=present('M')&&BettaSpecies.coatEnabled(fish);
+    const albino=present('T')&&!present('I')&&!present('K')&&!present('R')&&rand(11)<.035;
     function color(n){
-      if(!BettaSpecies.coatEnabled(fish))return rand(n)<.72?0:1;
+      if(!BettaSpecies.coatEnabled(fish))return rand(n)<.85?0:1;
       const r=rand(n);
+      if(albino)return 10;
+      if(present('K')&&!marble&&!present('C')&&!present('O'))return r<.94?0:1;
+      if(present('J')&&r<.82)return 7;
+      if(present('C')&&r<.82)return r<.60?8:7;
+      if(present('O')&&r<.72)return present('J')?7:6;
+      if(present('G')&&r<.70)return rand(n+20)<.28?13:3;
+      if(present('V')&&r<.70)return rand(n+20)<.55?3:13;
+      if(present('T')&&r<.76)return rand(n+20)<.50?6:11;
+      if(marble&&r<.16)return 9;
       if((present('R')||present('N'))&&r<.18)return present('N')?5:4;
-      if((present('T')||present('I')||present('V'))&&r<.58)return present('G')?3:2;
+      if(present('I')&&r<.58)return g.B==='BB'?12:g.B==='bb'?11:2;
       return r<.80?0:1;
     }
     const left=color(1);let right=left;
-    if(marble&&rand(2)<.62){const options=[0,1,2,3,6].filter(v=>v!==left);right=options[Math.floor(rand(3)*options.length)];}
-    const accent=base=>base===2?6:2;
+    if(marble&&!albino&&rand(2)<.62){const options=[0,1,2,3,6,9,11].filter(v=>v!==left);right=options[Math.floor(rand(3)*options.length)];}
+    const accent=base=>[2,3,11,12,13].includes(base)?(rand(base+30)<.5?0:6):[7,8].includes(base)?6:2;
+    const diamond=present('O')&&g.O==='OO'&&rand(12)<.28;
     return Object.freeze({eyeLeft:left,eyeRight:right,
       eyeAccentLeft:accent(left),eyeAccentRight:accent(right),
-      eyeSectorLeft:marble&&rand(4)<.48?.22+rand(5)*.35:0,
-      eyeSectorRight:marble&&rand(6)<.48?.22+rand(7)*.35:0});
+      eyeSectorLeft:marble&&!albino&&rand(4)<.48?(rand(8)<.5?.5:.22+rand(5)*.35):0,
+      eyeSectorRight:marble&&!albino&&rand(6)<.48?(rand(9)<.5?.5:.22+rand(7)*.35):0,
+      eyeDiamondLeft:diamond?.45+rand(13)*.55:0,
+      eyeDiamondRight:diamond&&rand(14)<.65?.45+rand(15)*.55:0});
   }
   function params(fish) {
     const signature=key(fish);
@@ -43,6 +56,8 @@ window.BettaAppearance = (() => {
     const orange=dose('N');
     const result=Object.freeze({
       ...eyes(fish),
+      eyeCoverLeft:eyes(fish).eyeDiamondLeft*Math.max(0,Math.min(1,((Number(fish.age)||0)-4)/8)),
+      eyeCoverRight:eyes(fish).eyeDiamondRight*Math.max(0,Math.min(1,((Number(fish.age)||0)-4)/8)),
       alien:[...(g.V||'vv')].filter(a=>a==='V').length/2,
       white:[...(g.T||'tt')].filter(a=>a==='T').length/2,orange:[...(g.N||'nn')].filter(a=>a==='N').length/2,purple:[...(g.P||'pp')].filter(a=>a==='P').length/2,gold:[...(g.J||'jj')].filter(a=>a==='J').length/2,speckle:[...(g.Q||'qq')].filter(a=>a==='Q').length/2,samurai:[...(g.U||'uu')].filter(a=>a==='U').length/2,rim:[...(g.Z||'zz')].filter(a=>a==='Z').length/2,bicolor:[...(g.X||'xx')].filter(a=>a==='X').length/2,green:[...(g.G||'gg')].filter(a=>a==='G').length/2,
       blue:g.B==='BB'?0:g.B==='Bb'?1:2,
@@ -81,9 +96,10 @@ window.BettaAppearance = (() => {
     }
     const catalogName=BettaTypes.colorName(fish);
     if(catalogName)parts.unshift(catalogName);
-    const eyeNames=['neri','marroni','blu','verdi','rossi','arancio','argentei'];
+    const eyeNames=['neri','marroni','blu','verdi smeraldo','rossi','arancio','argentei','dorati','rame','rosa','rubino albino','ciano ghiaccio','blu cobalto','verde lime'];
     parts.push(p.eyeLeft===p.eyeRight?'occhi '+eyeNames[p.eyeLeft]:'occhi '+eyeNames[p.eyeLeft]+' / '+eyeNames[p.eyeRight]);
     if(p.eyeSectorLeft||p.eyeSectorRight)parts.push('iride multicolore');
+    if(p.eyeCoverLeft||p.eyeCoverRight)parts.push('Diamond Eye');
     return parts.join(' · ');
   }
   return {params,describe,key,eyes};
