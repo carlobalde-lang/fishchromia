@@ -1,0 +1,7 @@
+Copyright (c) 2026 Fishchromia. All rights reserved.
+
+Commercial and non-commercial use, modification, public display, and 
+redistribution of this software and its source code, in whole or in part, 
+are strictly prohibited without prior written permission from the copyright holder.
+
+This software is provided "as is", without warranty of any kind.
