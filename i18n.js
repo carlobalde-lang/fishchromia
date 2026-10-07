@@ -1,6 +1,9 @@
 'use strict';
 window.FishI18n=(()=>{
   const translations=new Map(Object.entries({
+    'Sposta tutti i pesci selezionati nello stesso acquario.':'Move all selected fish into the same aquarium.','1 pesce selezionato':'1 selected fish','Ctrl/Cmd: aggiungi o rimuovi · Shift: seleziona un intervallo.':'Ctrl/Cmd: add or remove · Shift: select a range.','Seleziona visibili':'Select visible','Deseleziona':'Deselect','Sposta selezionati':'Move selected','Metti in vendita':'List for sale','Ritira dalla vendita':'Withdraw from sale','Elimina selezionati':'Delete selected',
+    'Sposta lungo gli assi':'Move along axes','Ruota':'Rotate','Altezza':'Height','Altezza della decorazione non valida.':'Invalid decoration height.','Trascina le frecce colorate per spostare lungo un asse. Usa l’anello per ruotare. W: sposta · E: ruota.':'Drag the colored arrows to move along an axis. Use the ring to rotate. W: move · E: rotate.',
+    'Vista 3D':'3D view','Mostra controlli':'Show controls','Nella vista 3D, clicca una pianta, un sasso o una radice e trascinala per spostarla. Puoi muovere anche l’arredamento iniziale.':'In the 3D view, click a plant, stone or root and drag it to move it. You can also move the initial decoration.','Arredamento iniziale selezionato: trascinalo nella vista 3D.':'Initial decoration selected: drag it in the 3D view.','Posizione dell’arredamento iniziale non valida.':'Invalid initial decoration position.',
     'Creativa · modalità':'Creative mode','Acquario 0':'Aquarium 0','Acquario pieno: massimo 100 pesci.':'Tank full: maximum 100 fish.','Acquario zero':'Aquarium zero','Rigenera casualmente':'Randomize decoration','Sposta il pesce dall’acquario zero prima di venderlo.':'Move the fish out of aquarium zero before selling it.','Seme allestimento non valido.':'Invalid decoration seed.',
     'Fishchromia · Genetica e livree':'Fishchromia · Genetics and coats',
     'La tua casa.':'Your home.','Il tuo allevamento.':'Your fishroom.',
@@ -615,7 +618,7 @@ window.FishI18n=(()=>{
     [/\bIn evidenza questo mese:\s*/g,'Featured this month: '],[/\bvalore consigliato\b/g,'recommended value'],
     [/\bscegli una coppia\b/g,'choose a pair'],[/\bDisponibile\b/g,'Available'],
     [/\bVasca (\d+)/g,'Tank $1'],[/\bVetrina (\d+)/g,'Display $1'],
-    [/\bAcquario zero\b/g,'Aquarium zero'],[/\bvasca vuota\b/g,'empty tank'],[/\bapri la vasca per osservarli\b/g,'open the tank to observe them'],[/\bmodalità/g,'mode'],[/\bAcquario #(\S+)/g,'Tank #$1'],[/\bStanza (\d+)/g,'Room $1'],
+    [/\b(\d+) pesci selezionati\b/g,'$1 selected fish'],[/\bSposta (\d+) selected fish\b/g,'Move $1 selected fish'],[/\bAcquario zero\b/g,'Aquarium zero'],[/\bvasca vuota\b/g,'empty tank'],[/\bapri la vasca per osservarli\b/g,'open the tank to observe them'],[/\bmodalità/g,'mode'],[/\bAcquario #(\S+)/g,'Tank #$1'],[/\bStanza (\d+)/g,'Room $1'],
     [/\b(\d+) \/ (\d+) pesci\b/g,'$1 / $2 fish'],[/\b(\d+) \/ (\d+) livree\b/g,'$1 / $2 coats'],
     [/\breputazione\b/g,'reputation'],[/\bmonete\b/g,'coins'],[/\bGen\.\b/g,'Gen.'],
     [/\bMese (\d+)/g,'Month $1'],[/\bMESE (\d+)/g,'MONTH $1'],[/\bGEN\. (\d+)/g,'GEN. $1'],[/\b(\d+) ESEMPLARI\b/g,'$1 FISH'],

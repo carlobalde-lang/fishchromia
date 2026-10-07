@@ -7,7 +7,7 @@ const appStore = BettaStore.create({
 },{mode:window.bettaMode||'creative'});
 let state = appStore.getState();
 const labels = {V:'Reticolo Alien (sim.)',T:'bianco (sim.)',N:'arancio (sim.)',P:'lavanda (sim.)',J:'giallo corpo (sim.)',Q:'puntinato (sim.)',U:'samurai (sim.)',Z:'bordo blu (sim.)',X:'bicolore (sim.)',G:'verde (sim.)',B:'Blu',M:'Marble',F:'Butterfly',I:'Iridescenza',K:'Nero',R:'Rosso',C:'Rame',O:'Dragon (sim.)',Y:'Giallo pinne (sim.)'};
-const rosterCards = new Map();
+const rosterCards = new Map();const multiSelection=new Set();let rosterSelectionAnchor=null;
 const rosterView={query:'',filter:'all',coat:'all',sort:'recent',brood:null,broodName:''};
 const selected = () => state.fish.find(f => f.id === state.selected) || state.fish[0];
 const parents = () => [state.fish.find(f => f.id === state.mother),state.fish.find(f => f.id === state.father)];
@@ -44,25 +44,26 @@ function drawPreview(image, fish) {
   if (window.betta3d) window.betta3d.thumbnail(image, fish);
 }
 function observeFish(id){
+  multiSelection.clear();multiSelection.add(id);rosterSelectionAnchor=id;
   act(()=>{if(!state.fish.some(f=>f.id===id))return;appStore.select(id);if($('#laboratory').hidden)window.betta3d?.openLaboratory();const panel=$('#observation');if(innerWidth<=720||panel.getBoundingClientRect().top<0||panel.getBoundingClientRect().top>innerHeight*.6)panel.scrollIntoView({block:'start',behavior:'smooth'});});
 }
 const moveDialog=document.createElement('dialog');moveDialog.className='shelf-label-editor';moveDialog.id='fish-move-dialog';
 moveDialog.innerHTML='<form><h2>Sposta pesce</h2><p class="move-current"></p><label for="fish-move-target">Destinazione</label><select id="fish-move-target"></select><p>Massimo 4 pesci per acquario. In carriera puoi esporre un adulto in negozio al prezzo standard.</p><p class="move-error" role="status"></p><button type="submit">Sposta qui</button><button type="button" class="move-cancel">Annulla</button></form>';
-document.body.append(moveDialog);let movingId;
+document.body.append(moveDialog);let movingId,movingIds=[];
 moveDialog.querySelector('.move-cancel').onclick=()=>moveDialog.close();
 function openMoveFish(id){
- const current=appStore.getState(),fish=current.fish.find(f=>f.id===id);if(!fish)return;movingId=id;
- const housing=BettaStore.housing(current),target=$('#fish-move-target'),listed=current.career?.listings.some(l=>l.fishId===id),home=housing.assignments[id];target.replaceChildren();
- moveDialog.querySelector('h2').textContent='Sposta '+fishLabel(fish)+' · #'+id;
- moveDialog.querySelector('.move-current').textContent=listed?'Pesce in vendita: ritiralo prima dal negozio.':'Attualmente nell’acquario #'+BettaStore.tankNumber(home);
+ const current=appStore.getState();movingIds=Array.isArray(id)?id:[id];const fish=current.fish.find(f=>f.id===movingIds[0]);if(!fish)return;movingId=fish.id;id=fish.id;
+ const housing=BettaStore.housing(current),target=$('#fish-move-target'),listed=current.career?.listings.some(l=>movingIds.includes(l.fishId)),home=housing.assignments[id];target.replaceChildren();
+ moveDialog.querySelector('h2').textContent=movingIds.length>1?'Sposta '+movingIds.length+' pesci selezionati':'Sposta '+fishLabel(fish)+' · #'+id;
+ moveDialog.querySelector('.move-current').textContent=movingIds.length>1&&!listed?'Sposta tutti i pesci selezionati nello stesso acquario.':listed?'Pesce in vendita: ritiralo prima dal negozio.':'Attualmente nell’acquario #'+BettaStore.tankNumber(home);
  for(const [title,slots] of [['Stanza 1 · Allevamento',[housing.community,...housing.breeders]],['Stanza 2 · Crescita',[...housing.nursery,...Array.from({length:current.mode==='career'?0:window.FishCollection?.tanks||24},(_,i)=>({key:'nursery-'+(housing.nursery.length+i),name:'Vasca '+(housing.nursery.length+i+1),fish:[]}))]]]){
-  const group=document.createElement('optgroup');group.label=title;for(const slot of slots.filter(s=>s.unlocked!==false)){const option=document.createElement('option');option.value=slot.key;option.textContent='#'+BettaStore.tankNumber(slot.key)+' · '+(current.tankNames?.[slot.key]||slot.name)+' · '+slot.fish.length+'/'+BettaStore.capacityForTank(slot.key);option.disabled=slot.fish.length>=BettaStore.capacityForTank(slot.key)&&slot.key!==home;group.append(option);}target.append(group);
+  const group=document.createElement('optgroup');group.label=title;for(const slot of slots.filter(s=>s.unlocked!==false)){const option=document.createElement('option');option.value=slot.key;option.textContent='#'+BettaStore.tankNumber(slot.key)+' · '+(current.tankNames?.[slot.key]||slot.name)+' · '+slot.fish.length+'/'+BettaStore.capacityForTank(slot.key);option.disabled=slot.fish.filter(f=>!movingIds.includes(f.id)).length+movingIds.length>BettaStore.capacityForTank(slot.key);group.append(option);}target.append(group);
  }
- if(current.mode==='career'){const shop=document.createElement('optgroup');shop.label='Stanza 3 · Negozio';const option=document.createElement('option');option.value='shop';option.textContent='In vendita · prezzo standard '+BettaCareer.value(fish,current.month)+' ◈';option.disabled=home==='community'||fish.age<4||current.career.listings.length>=current.career.shopSlots*4;shop.append(option);target.append(shop);}
+ if(current.mode==='career'){const shop=document.createElement('optgroup');shop.label='Stanza 3 · Negozio';const option=document.createElement('option');option.value='shop';option.textContent='In vendita · prezzo standard '+BettaCareer.value(fish,current.month)+' ◈';option.disabled=movingIds.some(id=>housing.assignments[id]==='community'||current.fish.find(f=>f.id===id).age<4)||current.career.listings.length+movingIds.length>current.career.shopSlots*4;shop.append(option);target.append(shop);}
  if(home)target.value=home;target.disabled=!!listed;moveDialog.querySelector('[type="submit"]').disabled=!!listed;moveDialog.querySelector('.move-error').textContent='';moveDialog.showModal();target.focus();
 }
-moveDialog.querySelector('form').onsubmit=event=>{event.preventDefault();try{const key=$('#fish-move-target').value;if(key==='shop'){const current=appStore.getState(),fish=current.fish.find(f=>f.id===movingId);appStore.career('list',{fishId:movingId,price:BettaCareer.value(fish,current.month)});}else appStore.moveFish(movingId,key);clearBrood();render();moveDialog.close();message(key==='shop'?'Pesce esposto in negozio al prezzo standard.':'Pesce spostato nell’acquario #'+BettaStore.tankNumber(key)+'.');}catch(e){moveDialog.querySelector('.move-error').textContent=e.message;}};
-const moveSelected=document.createElement('button');moveSelected.id='move-selected-fish';moveSelected.className='secondary';moveSelected.textContent='Sposta in un acquario';moveSelected.onclick=()=>openMoveFish(selected().id);$('#export-fish').parentElement.append(moveSelected);
+moveDialog.querySelector('form').onsubmit=event=>{event.preventDefault();try{const key=$('#fish-move-target').value;if(key==='shop'){const current=appStore.getState(),fish=current.fish.find(f=>f.id===movingId);appStore.careerMany('list',movingIds);}else appStore.moveMany(movingIds,key);clearBrood();render();moveDialog.close();message(key==='shop'?'Pesce esposto in negozio al prezzo standard.':'Pesce spostato nell’acquario #'+BettaStore.tankNumber(key)+'.');}catch(e){moveDialog.querySelector('.move-error').textContent=e.message;}};
+const moveSelected=document.createElement('button');moveSelected.id='move-selected-fish';moveSelected.className='secondary';moveSelected.textContent='Sposta in un acquario';moveSelected.onclick=()=>openMoveFish(multiSelection.size>1?[...multiSelection]:selected().id);$('#export-fish').parentElement.append(moveSelected);
 const renameDialog=document.createElement('dialog');renameDialog.className='shelf-label-editor';renameDialog.innerHTML='<form><h2>Rinomina esemplare</h2><label for="fish-rename-input">Nome</label><input id="fish-rename-input" maxlength="120" required><p class="rename-error" role="status"></p><button type="submit">Salva nome</button><button type="button" class="rename-cancel">Annulla</button></form>';document.body.append(renameDialog);
 const deleteSelected=document.createElement('button');deleteSelected.id='delete-selected-fish';deleteSelected.type='button';deleteSelected.className='secondary';deleteSelected.textContent='Elimina pesce';moveSelected.after(deleteSelected);
 deleteSelected.onclick=()=>{
@@ -315,7 +316,7 @@ function renderRoster() {
     let item=rosterCards.get(fish.id);
     if(!item) { item=createCard(fish); rosterCards.set(fish.id,item); }
     item.card.hidden=!matches(fish);
-    item.card.classList.toggle('active',fish.id===state.selected);
+    item.card.classList.toggle('active',fish.id===state.selected);item.card.classList.toggle('multi-selected',multiSelection.has(fish.id));item.card.setAttribute('aria-selected',String(multiSelection.has(fish.id)));
     item.name.textContent=(fish.sex==='F'?'♀ ':'♂ ')+fishLabel(fish);
     item.detail.textContent=BettaTypes.development(fish).stage+' · '+fish.age+' mesi · '+BettaTypes.name(fish);
     item.coat.textContent=coatLabel(fish);
@@ -337,7 +338,7 @@ function renderRoster() {
     if(roster.children[index]!==item.card) roster.insertBefore(item.card,roster.children[index]||null);
     if(!item.card.hidden)drawPreview(item.image,fish);
   });
-  updateObservationNav();
+  updateObservationNav();if(document.getElementById('multi-fish-toolbar'))refreshMultiSelection();
 }
 function renderLog() {
   $('#log').replaceChildren(...state.log.map(text=>{
@@ -394,7 +395,7 @@ $('#room-advance').onclick=advanceMonth;
 $('#reset').onclick=()=>{
   const mode=state.mode==='career'?'carriera':'creativa';
   const question=window.FishI18n?.language==='en'?'Restart '+(state.mode==='career'?'career':'creative')+' mode? Only this save will be replaced.':'Ricominciare la modalità '+mode+'? Solo questo salvataggio sarà sostituito.';
-  if(confirm(question)) act(()=>{clearBrood();$('#birth-banner').hidden=true;appStore.reset();});
+  if(confirm(question)) act(()=>{multiSelection.clear();rosterSelectionAnchor=null;clearBrood();$('#birth-banner').hidden=true;appStore.reset();});
 };
 $('#open-notes').onclick=()=>$('#notes').showModal();
 $('#export-tank').onclick=()=>act(()=>download(appStore.export(),'betta-'+state.mode+'.json','application/json'));
@@ -418,3 +419,8 @@ $('#export-fish').onclick=()=>act(()=>{
   const link=document.createElement('a'); link.href=data; link.download='betta-'+selected().id+'.png'; link.click();
 });
 render();
+
+const multiToolbar=document.createElement('div');multiToolbar.id='multi-fish-toolbar';multiToolbar.className='multi-fish-toolbar';multiToolbar.innerHTML='<strong id="multi-fish-count"></strong><small>Ctrl/Cmd: aggiungi o rimuovi · Shift: seleziona un intervallo.</small><button id="multi-all">Seleziona visibili</button><button id="multi-clear">Deseleziona</button><button id="multi-move">Sposta selezionati</button><button id="multi-sell">Metti in vendita</button><button id="multi-withdraw">Ritira dalla vendita</button><button id="multi-delete">Elimina selezionati</button>';$('#roster').before(multiToolbar);
+function refreshMultiSelection(){for(const id of multiSelection)if(!state.fish.some(f=>f.id===id))multiSelection.delete(id);const count=multiSelection.size;$('#multi-fish-count').textContent=count===1?'1 pesce selezionato':count+' pesci selezionati';for(const name of ['move','sell','withdraw','delete'])$('#multi-'+name).disabled=!count;for(const name of ['sell','withdraw'])$('#multi-'+name).hidden=state.mode!=='career';for(const [id,item] of rosterCards){item.card.classList.toggle('multi-selected',multiSelection.has(id));item.card.setAttribute('aria-selected',String(multiSelection.has(id)));}}
+$('#roster').addEventListener('click',event=>{const card=event.target.closest('.fish-card');if(!card)return;const id=Number(card.dataset.fishId);if(event.shiftKey||event.ctrlKey||event.metaKey||!event.target.closest('button')){event.preventDefault();event.stopImmediatePropagation();const ids=observationIds();if(event.shiftKey&&rosterSelectionAnchor!==null&&ids.includes(rosterSelectionAnchor)){const a=ids.indexOf(rosterSelectionAnchor),b=ids.indexOf(id);if(!event.ctrlKey&&!event.metaKey)multiSelection.clear();for(const selectedId of ids.slice(Math.min(a,b),Math.max(a,b)+1))multiSelection.add(selectedId);}else if(event.ctrlKey||event.metaKey){if(multiSelection.has(id))multiSelection.delete(id);else multiSelection.add(id);rosterSelectionAnchor=id;}else{multiSelection.clear();multiSelection.add(id);rosterSelectionAnchor=id;}refreshMultiSelection();}},true);
+$('#multi-all').onclick=()=>{for(const id of observationIds())multiSelection.add(id);refreshMultiSelection();};$('#multi-clear').onclick=()=>{multiSelection.clear();rosterSelectionAnchor=null;refreshMultiSelection();};$('#multi-move').onclick=()=>openMoveFish([...multiSelection]);$('#multi-sell').onclick=()=>act(()=>appStore.careerMany('list',[...multiSelection]));$('#multi-withdraw').onclick=()=>act(()=>appStore.careerMany('withdraw',[...multiSelection]));$('#multi-delete').onclick=()=>{const english=window.FishI18n?.language==='en';if(confirm(english?'Delete '+multiSelection.size+' selected fish? This cannot be undone.':'Eliminare '+multiSelection.size+' pesci selezionati? Questa azione non può essere annullata.'))act(()=>appStore.removeMany([...multiSelection]));};refreshMultiSelection();

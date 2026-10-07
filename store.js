@@ -30,11 +30,13 @@ window.BettaStore = (() => {
       if(!tankKey(key)||!layout||typeof layout.base!=='boolean'||!Array.isArray(layout.items)||layout.items.length>16)throw Error('Allestimento non valido: massimo 16 decorazioni aggiunte per acquario.');
       const ids=new Set();
       if(layout.baseSeed!==undefined&&(!integer(layout.baseSeed)||layout.baseSeed>4294967295))throw Error('Seme allestimento non valido.');
-      result[key]={base:layout.base,...(layout.baseSeed===undefined?{}:{baseSeed:layout.baseSeed}),items:layout.items.map(item=>{
+      const baseMoves=layout.baseMoves;if(baseMoves!==undefined&&(!Array.isArray(baseMoves)||baseMoves.length>18||new Set(baseMoves.map(m=>m?.key)).size!==baseMoves.length||baseMoves.some(m=>!m||!/^base:(plant:(?:[0-9]|1[0-5])|roots|rocks)$/.test(m.key)||!Number.isFinite(m.x)||Math.abs(m.x)>2.5||!Number.isFinite(m.z)||Math.abs(m.z)>1.2||m.lift!==undefined&&(!Number.isFinite(m.lift)||Math.abs(m.lift)>1.2)||m.angle!==undefined&&(!Number.isFinite(m.angle)||Math.abs(m.angle)>Math.PI*2))))throw Error('Posizione dell’arredamento iniziale non valida.');
+      result[key]={base:layout.base,...(baseMoves===undefined?{}:{baseMoves:baseMoves.map(m=>({key:m.key,x:m.x,z:m.z,...(m.lift===undefined?{}:{lift:m.lift}),...(m.angle===undefined?{}:{angle:m.angle})}))}),...(layout.baseSeed===undefined?{}:{baseSeed:layout.baseSeed}),items:layout.items.map(item=>{
         if(!item||!integer(item.id,1)||ids.has(item.id)||!decorCatalog.some(d=>d.id===item.type)||mode==='career'&&!owned.includes(item.type))throw Error('Decorazione non disponibile: acquistala nel negozio.');
         ids.add(item.id);
+        if(item.lift!==undefined&&(!Number.isFinite(item.lift)||Math.abs(item.lift)>1.2))throw Error('Altezza della decorazione non valida.');
         if(!Number.isFinite(item.x)||Math.abs(item.x)>1.02||!Number.isFinite(item.z)||Math.abs(item.z)>.40||!Number.isFinite(item.scale)||item.scale<.5||item.scale>1.4||!Number.isFinite(item.angle)||Math.abs(item.angle)>Math.PI*2||!integer(item.seed)||item.seed>4294967295)throw Error('Posizione o dimensione della decorazione non valida.');
-        return {id:item.id,type:item.type,x:item.x,z:item.z,scale:item.scale,angle:item.angle,seed:item.seed};
+        return {id:item.id,type:item.type,x:item.x,z:item.z,...(item.lift===undefined?{}:{lift:item.lift}),scale:item.scale,angle:item.angle,seed:item.seed};
       })};
     }
     return result;
@@ -290,6 +292,22 @@ window.BettaStore = (() => {
         if(state.career.customerRemaining===0)commit(window.BettaCareer.customer(clone(state)));
         else persist();
       },
+      moveMany(ids,key){
+        const unique=[...new Set(ids)];if(!unique.length||unique.some(id=>!state.fish.some(f=>f.id===id)))throw Error('Esemplare non trovato.');
+        if(!homeKey(key)||!tankUnlocked(state,key))throw Error('Acquario non disponibile.');
+        if(unique.some(id=>state.career?.listings.some(l=>l.fishId===id)))throw Error('Ritira prima il pesce dalla vendita.');
+        const assignments=assignTanks(state),others=Object.entries(assignments).filter(([id,k])=>k===key&&!unique.includes(Number(id))).length;
+        if(others+unique.length>capacityForTank(key))throw Error('Acquario pieno: massimo '+capacityForTank(key)+' pesci.');
+        const next=clone(state);for(const id of unique)assignments[id]=key;next.tankAssignments=assignments;commit(next);
+      },
+      removeMany(ids){
+        const unique=[...new Set(ids)];if(!unique.length||unique.some(id=>!state.fish.some(f=>f.id===id)))throw Error('Esemplare non trovato.');
+        if(unique.length>=state.fish.length)throw Error('Conserva almeno un pesce nell’allevamento.');
+        const next=clone(state),removed=next.fish.filter(f=>unique.includes(f.id));next.fish=next.fish.filter(f=>!unique.includes(f.id));
+        if(unique.includes(next.selected))next.selected=next.fish[0].id;if(unique.includes(next.mother))next.mother=null;if(unique.includes(next.father))next.father=null;
+        for(const id of unique)delete next.tankAssignments[id];if(next.career){next.career.listings=next.career.listings.filter(l=>!unique.includes(l.fishId));next.career.archive.push(...removed.map(f=>({id:f.id,name:f.name,month:next.month,parents:f.parents,reason:'eliminazione'})));next.career.archive=next.career.archive.slice(-3000);}commit(next);
+      },
+      careerMany(action,ids){if(!['list','withdraw'].includes(action))throw Error('Azione non valida.');let next=clone(state);for(const id of [...new Set(ids)]){const f=next.fish.find(f=>f.id===id);if(!f)throw Error('Esemplare non trovato.');next=window.BettaCareer.transact(next,action,{fishId:id,price:window.BettaCareer.value(f,next.month)});}commit(next);},
       moveFish(id,key){
         if(!state.fish.some(f=>f.id===id))throw Error('Esemplare non trovato.');
         if(!tankUnlocked(state,key))throw Error('Acquario non ancora sbloccato: amplia la casa.');
@@ -368,7 +386,7 @@ window.BettaStore = (() => {
         if(next.mode!==mode)throw Error('Questo backup appartiene alla modalità '+(next.mode==='career'?'carriera':'creativa')+'. Cambia modalità per importarlo.');
         blocked = false; commit(next,false);
       },
-      reset() { blocked = false;const next=founders(mode);next.tankAssignments=assignTanks(next);state=next;persist();emit(); },
+      reset() { blocked = false;const next=founders(mode);next.decorOwned=[];next.tankDecor={};if(mode==='creative'){next.fish=[];next.tankAssignments={};const palette=window.BettaTypes.colors;for(const [slot,key] of homeKeys.entries())for(let n=0;n<4;n++){const type=key.replace(/-male$/,''),sex=slot<homeKeys.length/2?'F':'M',color=palette[(slot*4+n)%palette.length],f=window.BettaTypes.specimen(type,color.id,sex,type==='dumbo');if(['imbellis','hendra'].includes(type)){Object.assign(f,window.BettaSpecies.specimen(type,sex));f.genes=window.BettaTypes.specimen('halfmoon',color.id,sex).genes;f.styledCoat=true;}f.id=next.fish.length+1;f.phase=Math.random()*Math.PI*2;f.name=defaultFishName(f);next.fish.push(window.BettaTypes.normalize(f));next.tankAssignments[f.id]=key;}next.nextFishId=next.fish.length+1;next.selected=1;next.mother=next.father=null;}next.tankAssignments=assignTanks(next);state=next;persist();emit(); },
       select(id) { if(state.fish.some(f=>f.id===id)) commit({...state,selected:id}); },
       choosePair(femaleId,maleId) {
         const mother=state.fish.find(f=>f.id===femaleId&&f.sex==='F'&&f.age>=2);
