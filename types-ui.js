@@ -19,6 +19,7 @@ seedControls.append(seedInput,rerollSeed);seedLabel.append(seedControls);
 if(window.bettaMode==='creative')controls.append(seedLabel);
 const back=document.createElement('button');back.type='button';back.className='secondary catalog-back';back.textContent='← Cambia tipologia';back.hidden=true;controls.before(back);
 const title=$('#catalog-title'),intro=title.nextElementSibling,note=$('#color-model-note'),selection=$('#catalog-selection'),add=$('#add-specimen');
+const catalogNotice=document.createElement('p');catalogNotice.id='catalog-capacity-notice';catalogNotice.className='catalog-capacity-notice';catalogNotice.setAttribute('role','alert');catalogNotice.hidden=true;add.before(catalogNotice);
 const multiHint=document.createElement('p');multiHint.className='catalog-multi-hint';multiHint.textContent='Clic: una livrea · Maiusc + clic: intervallo · Ctrl + clic: livree separate.';grid.before(multiHint);
 if(!isDiscus){colorSelect.closest('label').remove();$('#catalog-species').closest('label').remove();}
 const speciesChoices=[
@@ -98,6 +99,7 @@ seedInput.oninput=()=>setCatalogSeed(seedInput.value===''?NaN:Number(seedInput.v
 rerollSeed.onclick=()=>{const value=Math.floor(Math.random()*899999)+100000;seedInput.value=String(value);setCatalogSeed(value,true)};
 back.onclick=()=>{step='forms';catalogColor=null;selectedColors.clear();selectionAnchor=-1;renderCatalog();catalog.scrollTop=0};
 $('#open-catalog').onclick=()=>{
+ catalogNotice.hidden=true;catalogNotice.textContent='';
  clearTimeout(seedRefresh);catalogRandomColor=BettaTypes.randomColor();
  seedInput.value=String(catalogSeed);seedInput.setCustomValidity('');catalogForm=isDiscus?BettaTypes.forms[0].id:null;catalogColor=null;selectedColors.clear();selectionAnchor=-1;step='forms';
  catalog.showModal();renderCatalog();catalog.scrollTop=0;
@@ -107,5 +109,5 @@ add.onclick=()=>{
  if(add.disabled)return;
  const colors=isDiscus?[colorSelect.value==='random'?catalogRandomColor:colorSelect.value]:BettaTypes.colors.filter(color=>selectedColors.has(color.id)).map(color=>color.id);
  const fish=colors.map((colorId,index)=>{const item=previewFish(catalogForm,colorId);item.seed=(catalogSeed+index)%10000000;return BettaTypes.normalize(item);});
- act(()=>{appStore.addMany(fish);catalog.close()});
+ try{appStore.addMany(fish);catalogNotice.hidden=true;catalog.close();}catch(error){catalogNotice.textContent=error.message;catalogNotice.hidden=false;message(error.message);}
 };

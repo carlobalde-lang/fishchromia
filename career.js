@@ -37,15 +37,21 @@ window.BettaCareer=(()=>{
  function chance(price,max){return price>max?.1:price<=max*.7?.9:.9-(price/max-.7)/.3*.5;}
  function offers(state){
   const owned=new Set(state.fish.map(signature)),seen=new Set();
-  return colors().filter(color=>{
+  const coats=colors().filter(color=>{
    const key=signature(BettaTypes.specimen('halfmoon',color.id,'M'));
    if(owned.has(key)||seen.has(key))return false;seen.add(key);return true;
   }).map(color=>({id:'stock-'+state.month+'-'+color.id,colorId:color.id,price:starters.includes(color.id)?65:160+Object.keys(color.genes).length*25}));
+  const donors=[{id:'doubletail',formId:'doubletail',locus:'D',allele:'d',name:'Riproduttore Doubletail'},{id:'dumbo',formId:'halfmoon',dumbo:true,locus:'E',allele:'e',name:'Riproduttore Dumbo'},{id:'crowntail',formId:'crowntail',locus:'W',allele:'w',name:'Riproduttore Crowntail'}];
+  return [...coats,...donors.filter(d=>!['F','M'].every(sex=>state.fish.some(f=>f.sex===sex&&f.age>=2&&f.form[d.locus]?.includes(d.allele)))).map(d=>({...d,id:'donor-'+d.id,colorId:'royal',price:140,geneticDonor:true}))];
  }
+ function offerSpecimen(offer,sex){return BettaTypes.specimen(offer.formId||'halfmoon',offer.colorId,sex,!!offer.dumbo);}
+ function orderMatches(f,o){const r=o.requirements||{};return matches(f).includes(o.colorId)&&(!r.sex||f.sex===r.sex)&&BettaTypes.matchesTrait(f,r.trait)&&BettaTypes.matchesCarrier(f,r.carrier);}
+ function orderRequirements(o){const r=o.requirements||{},result=[];if(r.trait)result.push(BettaTypes.traitChoices.find(t=>t.id===r.trait).name);if(r.sex)result.push(r.sex==='F'?'Femmina':'Maschio');if(r.carrier)result.push(BettaTypes.carrierChoices.find(t=>t.id===r.carrier).name);return result;}
  function makeOrders(month,discoveries,relationships={},reputation=0){
   const pool=Object.keys(discoveries);return Array.from({length:3},(_,i)=>{
    const colorId=pool[(month+i)%pool.length]||'royal';
-   return {id:'order-'+month+'-'+i,colorId,customerId:regulars[(month+i)%regulars.length].id,reward:150+i*35+Math.min(200,reputation*2+(relationships[regulars[(month+i)%regulars.length].id]?.purchases||0)*20),deadline:month+6,status:'available'};
+   const requirements=i===0?{}:i===1?{trait:['halfmoon','plakat','dumbo','crowntail'][(Math.floor((month-1)/3))%4],sex:month%2?'F':'M'}:{trait:'halfmoon',sex:month%2?'M':'F',carrier:['doubletail','dumbo','plakat','crowntail'][Math.floor((month-1)/3)%4]};
+   return {id:'order-'+month+'-'+i,colorId,requirements,customerId:regulars[(month+i)%regulars.length].id,reward:150+i*35+Object.keys(requirements).length*50+Math.min(200,reputation*2+(relationships[regulars[(month+i)%regulars.length].id]?.purchases||0)*20),deadline:month+(i?12:6),status:'available'};
   });
  }
  function initial(){const discoveries=Object.fromEntries(starters.map(id=>[id,{month:1,fishId:null,parents:null,starter:true}]));return {version:1,regulars:{},contestEntries:[],trophies:[],cash:600,reputation:0,capacity:40,shopSlots:4,expansions:0,discoveries,listings:[],visits:[],archive:[],orders:makeOrders(1,discoveries),nextCustomer:1,customerRemaining:20};}
@@ -61,7 +67,9 @@ window.BettaCareer=(()=>{
   if(!Array.isArray(c.listings)||c.listings.length>c.shopSlots*4)throw Error('Vetrine non valide.');
   const occupancy=new Map();const seen=new Set();for(const l of c.listings){if(!l||seen.has(l.fishId)||!fish.some(f=>f.id===l.fishId&&f.age>=4)||!integer(l.price,1,1000000)||!integer(l.listedMonth,1,month))throw Error('Annuncio non valido.');seen.add(l.fishId);l.tank??=Math.floor((seen.size-1)/4);if(!integer(l.tank,0,c.shopSlots-1))throw Error('Vetrina non valida.');occupancy.set(l.tank,(occupancy.get(l.tank)||0)+1);if(occupancy.get(l.tank)>4)throw Error('Massimo 4 pesci per vetrina.');}
   if(!Array.isArray(c.orders)||c.orders.length>12||new Set(c.orders.map(o=>o.id)).size!==c.orders.length)throw Error('Ordini non validi.');
+  for(const o of c.orders){const match=/^order-(\d+)-([12])$/.exec(o?.id||'');if(match&&o.requirements===undefined&&o.status==='available'&&o.deadline>=month){const generated=makeOrders(Number(match[1]),c.discoveries,c.regulars||{},c.reputation)[Number(match[2])];o.requirements=generated.requirements;o.reward=Math.min(100000,o.reward+Object.keys(o.requirements).length*50);o.deadline=Math.min(month+12,o.deadline+6);}}
   for(const o of c.orders)if(!o||typeof o.id!=='string'||o.id.length>60||!byId(o.colorId)||!integer(o.reward,1,100000)||!integer(o.deadline,1,month+12)||!['available','accepted','completed','expired'].includes(o.status))throw Error('Ordine non valido.');
+  for(const o of c.orders){const r=o.requirements;if(r!==undefined&&(!r||typeof r!=='object'||Array.isArray(r)||Object.keys(r).some(k=>!['trait','sex','carrier'].includes(k))||r.trait!==undefined&&!BettaTypes.traitChoices.some(t=>t.id===r.trait)||r.carrier!==undefined&&!BettaTypes.carrierChoices.some(t=>t.id===r.carrier)||r.sex!==undefined&&!['F','M'].includes(r.sex)))throw Error('Requisiti genetici dell’ordine non validi.');}
   if(!Array.isArray(c.visits)||c.visits.length>24||!Array.isArray(c.archive)||c.archive.length>3000)throw Error('Storico negozio non valido.');
   for(const v of c.visits)if(!v||typeof v.name!=='string'||typeof v.message!=='string'||v.name.length>80||v.message.length>300)throw Error('Visita non valida.');
   for(const a of c.archive)if(!a||!integer(a.id,1,1000000000)||typeof a.name!=='string'||a.name.length>120||!integer(a.month,1,month))throw Error('Archivio non valido.');
@@ -90,7 +98,7 @@ window.BettaCareer=(()=>{
  }
  function removable(state,fish){return fish&&state.fish.length>2&&state.fish.some(f=>f.id!==fish.id&&f.sex===fish.sex&&f.age>=2&&!state.career.listings.some(l=>l.fishId===f.id));}
  function remove(state,fish,reason){
-  state.career.archive.push({id:fish.id,name:fish.name,month:state.month,parents:fish.parents,reason});state.career.archive=state.career.archive.slice(-3000);
+  state.career.archive.push({...fish,month:state.month,reason});state.career.archive=state.career.archive.slice(-3000);
   state.fish=state.fish.filter(f=>f.id!==fish.id);state.career.listings=state.career.listings.filter(l=>l.fishId!==fish.id);
   if(state.selected===fish.id)state.selected=state.fish[0].id;
   if(state.mother===fish.id)state.mother=null;if(state.father===fish.id)state.father=null;
@@ -113,14 +121,14 @@ window.BettaCareer=(()=>{
   }else if(action==='buy'){
    const offer=offers(state).find(o=>o.id===data.offerId);if(!offer||!['F','M'].includes(data.sex))throw Error('Offerta non valida.');
    if(state.fish.length>=c.capacity)throw Error('Allevamento pieno: amplia o vendi alcuni pesci.');spend(offer.price);
-   const f=BettaTypes.normalize(BettaTypes.specimen('halfmoon',offer.colorId,data.sex));f.id=state.nextFishId++;f.name=(BettaTypes.name(f)||'Betta')+' '+(f.sex==='F'?'femmina':'maschio')+' '+f.id;state.fish.unshift(f);state.selected=f.id;
+   const f=BettaTypes.normalize(offerSpecimen(offer,data.sex));f.id=state.nextFishId++;f.name=(BettaTypes.name(f)||'Betta')+' '+(f.sex==='F'?'femmina':'maschio')+' '+f.id;state.fish.unshift(f);state.selected=f.id;
    state.log.unshift('Acquistato '+f.name+' · '+offer.price+' monete.');
   }else if(action==='accept'){
    const o=c.orders.find(o=>o.id===data.orderId&&o.status==='available'&&o.deadline>=state.month);if(!o)throw Error('Ordine non disponibile.');
    if(c.orders.filter(o=>o.status==='accepted').length>=2)throw Error('Puoi accettare due ordini alla volta.');o.status='accepted';
   }else if(action==='deliver'){
    const o=c.orders.find(o=>o.id===data.orderId&&o.status==='accepted'&&o.deadline>=state.month);
-   if(!o||!fish||fish.age<4||fish.gen<1||!matches(fish).includes(o.colorId)||!removable(state,fish))throw Error('Serve un adulto nato qui con la livrea richiesta, conservando i riproduttori.');
+   if(!o||!fish||fish.age<4||fish.gen<1||!orderMatches(fish,o)||!removable(state,fish))throw Error('Serve un adulto nato qui con tutti i requisiti richiesti, conservando i riproduttori.');
    if(c.listings.some(l=>l.fishId===fish.id)||state.fish.some(f=>f.age===0&&f.parents?.includes(fish.id)))throw Error('Ritira il pesce dalla vendita e attendi eventuale riposo mensile.');
    remove(state,fish,'ordine');o.status='completed';c.cash+=o.reward;c.reputation+=3;state.log.unshift('Ordine consegnato · +'+o.reward+' monete.');
   }else if(action==='contest'){
@@ -159,5 +167,5 @@ window.BettaCareer=(()=>{
    c.customerRemaining=(15+rng()*25)/Math.min(2,1+c.reputation/100);
    state.log=state.log.slice(0,5);return state;
  }
- return {regulars,contest,contestScore,starters,initial,normalize,matches,displayName,coatName,signature,value,chance,offers,byId,demand,transact,discover,advance,customer};
+ return {offerSpecimen,orderMatches,orderRequirements,regulars,contest,contestScore,starters,initial,normalize,matches,displayName,coatName,signature,value,chance,offers,byId,demand,transact,discover,advance,customer};
 })();

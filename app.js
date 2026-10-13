@@ -8,7 +8,7 @@ const appStore = BettaStore.create({
 let state = appStore.getState();
 const labels = {V:'Reticolo Alien (sim.)',T:'bianco (sim.)',N:'arancio (sim.)',P:'lavanda (sim.)',J:'giallo corpo (sim.)',Q:'puntinato (sim.)',U:'samurai (sim.)',Z:'bordo blu (sim.)',X:'bicolore (sim.)',G:'verde (sim.)',B:'Blu',M:'Marble',F:'Butterfly',I:'Iridescenza',K:'Nero',R:'Rosso',C:'Rame',O:'Dragon (sim.)',Y:'Giallo pinne (sim.)'};
 const rosterCards = new Map();const multiSelection=new Set();let rosterSelectionAnchor=null;
-const rosterView={query:'',filter:'all',coat:'all',sort:'recent',brood:null,broodName:''};
+const rosterView={query:'',filter:'all',coat:'all',sort:'recent',trait:'all',carrier:'all',age:'all',brood:null,broodName:''};
 const selected = () => state.fish.find(f => f.id === state.selected) || state.fish[0];
 const parents = () => [state.fish.find(f => f.id === state.mother),state.fish.find(f => f.id === state.father)];
 const genotypeParams = BettaAppearance.params;
@@ -141,7 +141,7 @@ function renderStage() {
   $('#fish-traits').textContent = 'Colori: '+colorLabel(fish);
   const family=$('#fish-family');family.replaceChildren();
   if(!fish.parents)family.textContent='Fondatore · nessun genitore registrato.';
-  else{family.append('Genitori: ');fish.parents.forEach((id,i)=>{if(i)family.append(' × ');const parent=state.fish.find(f=>f.id===id),archived=state.career?.archive.find(f=>f.id===id),name=parent||archived;const label=name?name.name+' (#'+id+')':'#'+id;if(parent){const link=document.createElement('button');link.className='fish-name-link';link.textContent=label;link.onclick=()=>observeFish(id);family.append(link);}else family.append(label);});}
+  else{family.append('Genitori: ');fish.parents.forEach((id,i)=>{if(i)family.append(' × ');const parent=state.fish.find(f=>f.id===id),archived=state.fishArchive?.find(f=>f.id===id)||state.career?.archive.find(f=>f.id===id),name=parent||archived;const label=name?name.name+' (#'+id+')':'#'+id;if(parent){const link=document.createElement('button');link.className='fish-name-link';link.textContent=label;link.onclick=()=>observeFish(id);family.append(link);}else if(archived){const link=document.createElement('button');link.className='fish-name-link';link.textContent=label;link.onclick=()=>window.bettaLife?.openGenealogy(id);family.append(link);}else family.append(label);});}
   $('#stat-adults').textContent=state.fish.filter(f=>f.age>=2).length;
   $('#stat-young').textContent=state.fish.filter(f=>f.age<2).length;
   $('#stat-ready').textContent=state.fish.filter(f=>f.age===1).length;
@@ -302,9 +302,10 @@ function renderRoster() {
     if(rosterView.brood&&!rosterView.brood.includes(fish.id))return false;
     const group=rosterView.filter;
     const filter=group==='all'||(group==='young'&&fish.age<2)||(group==='adult'&&fish.age>=2)
-      ||(['F','M'].includes(group)&&fish.sex===group&&fish.age>=2)
+      ||(['F','M'].includes(group)&&fish.sex===group)
       ||(group==='parents'&&[state.mother,state.father].includes(fish.id));
-    return filter&&(rosterView.coat==='all'||coatLabel(fish)===rosterView.coat)&&(!query||(fishLabel(fish)+' '+BettaTypes.name(fish)+' #'+fish.id).toLocaleLowerCase('it').includes(query));
+    const age=rosterView.age==='all'||(rosterView.age==='fry'&&fish.age<1)||(rosterView.age==='young'&&fish.age>=1&&fish.age<2)||(rosterView.age==='growing'&&fish.age>=2&&fish.age<4)||(rosterView.age==='adult'&&fish.age>=4);
+    return filter&&age&&BettaTypes.matchesTrait(fish,rosterView.trait)&&BettaTypes.matchesCarrier(fish,rosterView.carrier)&&(rosterView.coat==='all'||coatLabel(fish)===rosterView.coat)&&(!query||(fishLabel(fish)+' '+BettaTypes.name(fish)+' #'+fish.id).toLocaleLowerCase('it').includes(query));
   };
   const ordered=[...state.fish].sort((a,b)=>rosterView.sort==='name'?a.name.localeCompare(b.name,'it')||a.id-b.id:rosterView.sort==='age'?a.age-b.age||b.id-a.id:b.id-a.id);
   const count=ordered.filter(matches).length;
@@ -367,8 +368,14 @@ function showBrood(ids,name){
 window.bettaApp={observeFish,store:appStore,render,drawPreview,message,showBrood,clearBrood};
 function setRosterFilter(filter,keepBrood=false){
   if(!keepBrood)clearBrood();
-  rosterView.filter=filter;rosterView.coat='all';rosterView.query='';$('#fish-filter').value=filter;$('#fish-search').value='';renderRoster();
+  rosterView.filter=filter;rosterView.coat='all';rosterView.query='';rosterView.trait=rosterView.carrier=rosterView.age='all';for(const id of ['trait-filter','carrier-filter','age-filter'])$('#'+id).value='all';$('#fish-filter').value=filter;$('#fish-search').value='';renderRoster();
 }
+for(const [id,label,choices,key] of [
+ ['trait-filter','Tratto visibile',BettaTypes.traitChoices,'trait'],
+ ['carrier-filter','Portatori e alleli',BettaTypes.carrierChoices,'carrier'],
+ ['age-filter','Età',[{id:'fry',name:'Avannotti'},{id:'young',name:'Giovani (1 mese)'},{id:'growing',name:'Adulti in crescita (2–3 mesi)'},{id:'adult',name:'Adulti (4+ mesi)'}],'age']
+]){const wrapper=document.createElement('label');wrapper.textContent=label;const select=document.createElement('select');select.id=id;select.setAttribute('aria-label',label);select.append(new Option('Tutti','all'),...choices.map(c=>new Option(c.name,c.id)));select.onchange=()=>{rosterView[key]=select.value;renderRoster();};wrapper.append(select);document.querySelector('.roster-selects').append(wrapper);}
+for(const sex of ['F','M']){const option=$('#fish-filter').querySelector('option[value="'+sex+'"]');if(option)option.textContent=sex==='F'?'Femmine':'Maschi';}
 $('#fish-search').oninput=event=>{rosterView.query=event.target.value;renderRoster();};
 $('#coat-filter').onchange=event=>{rosterView.coat=event.target.value;renderRoster();};
 $('#fish-filter').onchange=event=>{clearBrood();rosterView.filter=event.target.value;renderRoster();};

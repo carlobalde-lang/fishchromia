@@ -1,6 +1,29 @@
 'use strict';
 window.FishI18n=(()=>{
   const translations=new Map(Object.entries({
+    'Avannotti':'Fry',
+    'Nessun nonno registrato':'No grandparents recorded',
+    'Tratto visibile':'Visible trait','Portatori e alleli':'Carriers and alleles','Tutti':'All','Femmine':'Females','Maschi':'Males','Età':'Age','Pinne corte':'Short fins','Pinne lunghe':'Long fins','Halfmoon (180° o più)':'Halfmoon (180° or more)',
+    'Portatore Doubletail (Dd)':'Doubletail carrier (Dd)','Portatore Dumbo (Ee)':'Dumbo carrier (Ee)','Portatore pinne corte (Ll)':'Short-fin carrier (Ll)','Allele Crowntail (Ww)':'Crowntail allele (Ww)',
+    'Giovani (1 mese)':'Juveniles (1 month)','Adulti in crescita (2–3 mesi)':'Growing adults (2–3 months)','Adulti (4+ mesi)':'Adults (4+ months)',
+    'Riproduttore Doubletail':'Doubletail breeding fish','Riproduttore Dumbo':'Dumbo breeding fish','Riproduttore Crowntail':'Crowntail breeding fish','Introduce un allele recessivo per i tuoi incroci.':'Introduces a recessive allele for your crosses.',
+    'Requisiti genetici dell’ordine non validi.':'Invalid genetic order requirements.',
+    'Serve un adulto nato qui con tutti i requisiti richiesti, conservando i riproduttori.':'An adult born here must meet every requirement, while retaining breeding fish.',
+    'Non hai ancora un adulto nato qui che soddisfi tutti i requisiti.':'You do not yet have an adult born here that meets every requirement.',
+    'Passaporto':'Passport','Passaporto del pesce':'Fish passport','Scarica PNG':'Download PNG','Creazione del passaporto…':'Creating the passport…','Immagine pronta da scaricare.':'Image ready to download.',
+    'Dati dell’esemplare non disponibili.':'Fish data unavailable.','La vista 3D non è ancora pronta.':'The 3D view is not ready yet.','Genitori':'Parents','Nonni':'Grandparents','mesi':'months','Mese':'Month','Genetica del modello di gioco':'Game model genetics',
+
+    'Spazio insufficiente negli acquari della Stanza 1. Libera spazio prima di creare nuovi pesci.':'Not enough space in Room 1 aquariums. Free some space before creating new fish.',
+    'Gli acquari della Stanza 1 sono pieni. Libera spazio prima di creare nuovi pesci.':'Room 1 aquariums are full. Free some space before creating new fish.',
+    'Apri un altro ramo per continuare.':'Open another branch to continue.',
+    'In allevamento':'In your fishroom','Nello storico':'In the archive','Dati non disponibili':'Data unavailable',
+    'Genotipo':'Genotype','Forma':'Form','Colore':'Colour','Fondatore':'Founder',
+    'Ascendenza già mostrata in questo ramo.':'Ancestry already shown in this branch.',
+    'Nascondi genitori':'Hide parents','Mostra genitori':'Show parents',
+    'Seleziona un antenato per centrare il suo albero. Apri i rami per esplorare le generazioni.':'Select an ancestor to centre its tree. Open branches to explore generations.',
+    'Lo storico conserva aspetto e genotipo degli esemplari venduti o rimossi.':'The archive preserves the appearance and genotype of sold or removed fish.',
+    'Archivio esemplari non valido.':'Invalid fish archive.',
+
     'Sposta tutti i pesci selezionati nello stesso acquario.':'Move all selected fish into the same aquarium.','1 pesce selezionato':'1 selected fish','Ctrl/Cmd: aggiungi o rimuovi · Shift: seleziona un intervallo.':'Ctrl/Cmd: add or remove · Shift: select a range.','Seleziona visibili':'Select visible','Deseleziona':'Deselect','Sposta selezionati':'Move selected','Metti in vendita':'List for sale','Ritira dalla vendita':'Withdraw from sale','Elimina selezionati':'Delete selected',
     'Sposta lungo gli assi':'Move along axes','Ruota':'Rotate','Altezza':'Height','Altezza della decorazione non valida.':'Invalid decoration height.','Trascina le frecce colorate per spostare lungo un asse. Usa l’anello per ruotare. W: sposta · E: ruota.':'Drag the colored arrows to move along an axis. Use the ring to rotate. W: move · E: rotate.',
     'Vista 3D':'3D view','Mostra controlli':'Show controls','Nella vista 3D, clicca una pianta, un sasso o una radice e trascinala per spostarla. Puoi muovere anche l’arredamento iniziale.':'In the 3D view, click a plant, stone or root and drag it to move it. You can also move the initial decoration.','Arredamento iniziale selezionato: trascinalo nella vista 3D.':'Initial decoration selected: drag it in the 3D view.','Posizione dell’arredamento iniziale non valida.':'Invalid initial decoration position.',

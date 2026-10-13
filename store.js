@@ -139,11 +139,21 @@ window.BettaStore = (() => {
     const mode=input.mode??'creative';
     if(!['creative','career'].includes(mode))throw Error('Modalità non valida.');
     const career=mode==='career'?window.BettaCareer.normalize(input.career,fish,input.month):undefined;
-    const minimumNext=Math.max(...fish.map(f=>f.id),...(career?.archive||[]).map(f=>f.id))+1;
+    if(career)career.archive=career.archive.map(entry=>entry.genes&&entry.form?{...migrate({schemaVersion:VERSION,collection:isDiscus?'discus':'betta',mode:'creative',fish:[entry],month:input.month}).fish[0],month:entry.month,reason:entry.reason}:entry);
+    const archiveIds=new Set();
+    const rawArchive=input.fishArchive??[];
+    if(!Array.isArray(rawArchive)||rawArchive.length>3000)throw Error('Archivio esemplari non valido.');
+    const fishArchive=rawArchive.map(entry=>{
+      if(!entry||ids.has(entry.id)||archiveIds.has(entry.id)||!integer(entry.archivedMonth,1)||entry.archivedMonth>input.month||!['vendita','ordine','eliminazione'].includes(entry.reason))throw Error('Archivio esemplari non valido.');
+      archiveIds.add(entry.id);
+      const normalized=migrate({schemaVersion:VERSION,collection:isDiscus?'discus':'betta',mode:'creative',fish:[entry],month:input.month}).fish[0];
+      return {...normalized,archivedMonth:entry.archivedMonth,reason:entry.reason};
+    });
+    const minimumNext=Math.max(...fish.map(f=>f.id),...fishArchive.map(f=>f.id),...(career?.archive||[]).map(f=>f.id))+1;
     if(input.nextFishId!==undefined&&(!integer(input.nextFishId,1)))throw Error('Contatore esemplari non valido.');
     const migrated={
       mode,collection:isDiscus?'discus':'betta',...(career?{career}:{}),nextFishId:Math.max(input.nextFishId??minimumNext,minimumNext),
-      schemaVersion: VERSION, fish,tankNames:tankNames(input.tankNames),
+      schemaVersion: VERSION, fish,fishArchive,tankNames:tankNames(input.tankNames),
       decorOwned:readDecorOwned(input.decorOwned),tankDecor:readTankDecor(input.tankDecor,mode,readDecorOwned(input.decorOwned)),
       diary:readDiary(input.diary),photos:readPhotos(input.photos),tutorial:readTutorial(input.tutorial),
       selected: validSelection(input.selected) ?? fish[0].id,
@@ -173,6 +183,9 @@ window.BettaStore = (() => {
   function record(next,kind,text,fishIds=[]){next.diary=[...(next.diary||[]),{id:(next.diary?.at(-1)?.id||next.diary?.length||0)+1,month:next.month,kind,text:text.slice(0,500),fishIds:fishIds.slice(0,40)}].slice(-500);}
   function track(previous,next){
     next.diary=next.diary||[];next.photos=next.photos||[];next.tutorial=readTutorial(next.tutorial);
+    const living=new Set(next.fish.map(f=>f.id)),removed=previous.fish.filter(f=>!living.has(f.id));
+    next.fishArchive??=previous.fishArchive||[];
+    if(removed.length){const records=removed.map(f=>{const sale=next.career?.archive.find(a=>a.id===f.id);const snapshot=clone(sale?.genes?sale:f);delete snapshot.month;delete snapshot.reason;return {...snapshot,archivedMonth:next.month,reason:sale?.reason||'eliminazione'};});next.fishArchive=[...next.fishArchive,...records].slice(-3000);}
     const oldIds=new Set(previous.fish.map(f=>f.id)),added=next.fish.filter(f=>!oldIds.has(f.id));
     if(added.length){const births=added.filter(f=>f.parents);if(births.length){record(next,'birth',births.length+' piccoli: '+births.map(f=>f.name).join(', '),births.map(f=>f.id));next.tutorial.born=true;}else record(next,'purchase',added.length+' nuovi pesci nell’allevamento.',added.map(f=>f.id));}
     if(next.month>previous.month)record(next,'month','Mese '+next.month+': '+next.fish.filter(f=>f.age>=4).length+' esemplari adulti.');
@@ -198,16 +211,16 @@ window.BettaStore = (() => {
     };
     if(isDiscus&&mode==='creative'){
       for(const color of window.BettaTypes.colors)pair(sex=>window.BettaTypes.specimen('halfmoon',color.id,sex),color.name);
-      return {schemaVersion:VERSION,diary:[],photos:[],tutorial:readTutorial(),collection:'discus',mode,tankNames:{},nextFishId:fish.length+1,fish,selected:1,mother:null,father:null,month:1,log:['Benvenuto nel tuo allevamento Discus.']};
+      return {schemaVersion:VERSION,fishArchive:[],diary:[],photos:[],tutorial:readTutorial(),collection:'discus',mode,tankNames:{},nextFishId:fish.length+1,fish,selected:1,mother:null,father:null,month:1,log:['Benvenuto nel tuo allevamento Discus.']};
     }
     if(mode==='career'){
       for(const [i,color] of window.BettaCareer.starters.entries())pair(sex=>window.BettaTypes.specimen(['halfmoon','plakat','veiltail','delta'][i],color,sex),window.BettaCareer.byId(color).name);
-      return {schemaVersion:VERSION,diary:[],photos:[],tutorial:readTutorial(),collection:isDiscus?'discus':'betta',mode,tankNames:{},nextFishId:fish.length+1,career:window.BettaCareer.initial(),fish,selected:1,mother:null,father:null,month:1,log:['Benvenuto: alleva nuove livree, allestisci il negozio e completa gli ordini.']};
+      return {schemaVersion:VERSION,fishArchive:[],diary:[],photos:[],tutorial:readTutorial(),collection:isDiscus?'discus':'betta',mode,tankNames:{},nextFishId:fish.length+1,career:window.BettaCareer.initial(),fish,selected:1,mother:null,father:null,month:1,log:['Benvenuto: alleva nuove livree, allestisci il negozio e completa gli ordini.']};
     }
     for (const form of window.BettaTypes.forms) pair(sex => window.BettaTypes.specimen(form.id,'random',sex), form.name);
     pair(sex => window.BettaTypes.specimen('halfmoon','random',sex,true), 'Dumbo');
     for (const species of ['imbellis','hendra']) pair(sex => window.BettaSpecies.specimen(species,sex), window.BettaSpecies.names[species]);
-    return {schemaVersion:VERSION,diary:[],photos:[],tutorial:readTutorial(),collection:isDiscus?'discus':'betta',mode,tankNames:{},nextFishId:fish.length+1, fish, selected:1, mother:null, father:null, month:1, log:['Una coppia per ogni tipologia è pronta per l’allevamento.']};
+    return {schemaVersion:VERSION,fishArchive:[],diary:[],photos:[],tutorial:readTutorial(),collection:isDiscus?'discus':'betta',mode,tankNames:{},nextFishId:fish.length+1, fish, selected:1, mother:null, father:null, month:1, log:['Una coppia per ogni tipologia è pronta per l’allevamento.']};
   }
   function relationship(m,d) {
     if (!m || !d) return '';
@@ -305,7 +318,7 @@ window.BettaStore = (() => {
         if(unique.length>=state.fish.length)throw Error('Conserva almeno un pesce nell’allevamento.');
         const next=clone(state),removed=next.fish.filter(f=>unique.includes(f.id));next.fish=next.fish.filter(f=>!unique.includes(f.id));
         if(unique.includes(next.selected))next.selected=next.fish[0].id;if(unique.includes(next.mother))next.mother=null;if(unique.includes(next.father))next.father=null;
-        for(const id of unique)delete next.tankAssignments[id];if(next.career){next.career.listings=next.career.listings.filter(l=>!unique.includes(l.fishId));next.career.archive.push(...removed.map(f=>({id:f.id,name:f.name,month:next.month,parents:f.parents,reason:'eliminazione'})));next.career.archive=next.career.archive.slice(-3000);}commit(next);
+        for(const id of unique)delete next.tankAssignments[id];if(next.career){next.career.listings=next.career.listings.filter(l=>!unique.includes(l.fishId));next.career.archive.push(...removed.map(f=>({...f,month:next.month,reason:'eliminazione'})));next.career.archive=next.career.archive.slice(-3000);}commit(next);
       },
       careerMany(action,ids){if(!['list','withdraw'].includes(action))throw Error('Azione non valida.');let next=clone(state);for(const id of [...new Set(ids)]){const f=next.fish.find(f=>f.id===id);if(!f)throw Error('Esemplare non trovato.');next=window.BettaCareer.transact(next,action,{fishId:id,price:window.BettaCareer.value(f,next.month)});}commit(next);},
       moveFish(id,key){
@@ -367,7 +380,7 @@ window.BettaStore = (() => {
         delete next.tankAssignments[id];
         if(next.career){
           next.career.listings=next.career.listings.filter(l=>l.fishId!==id);
-          next.career.archive.push({id:fish.id,name:fish.name,month:next.month,parents:fish.parents,reason:'eliminazione'});
+          next.career.archive.push({...fish,month:next.month,reason:'eliminazione'});
           next.career.archive=next.career.archive.slice(-3000);
         }
         next.log=[fish.name+' eliminato dall’allevamento.',...next.log].slice(0,5);
@@ -404,12 +417,17 @@ window.BettaStore = (() => {
         if(mode==='career')throw Error('In carriera acquista riproduttori dal mercato.');
         if(!Array.isArray(specimens)||!specimens.length)throw Error('Seleziona almeno una livrea.');
         if(state.fish.length+specimens.length>3000)throw Error('Vasca piena: esporta una copia prima di iniziare un nuovo allevamento.');
+        const assignments=assignTanks(state),counts=new Map(),slots=[];
+        for(const key of Object.values(assignments))counts.set(key,(counts.get(key)||0)+1);
+        for(const key of homeKeys)for(let n=counts.get(key)||0;n<capacityForTank(key);n++)slots.push(key);
+        if(specimens.length>slots.length)throw Error(slots.length?'Spazio insufficiente negli acquari della Stanza 1. Libera spazio prima di creare nuovi pesci.':'Gli acquari della Stanza 1 sono pieni. Libera spazio prima di creare nuovi pesci.');
         const start=nextId(),created=specimens.map((specimen,index)=>{
           const fish=window.BettaTypes.normalize({...clone(specimen),id:start+index});
           fish.name=defaultFishName(fish);return fish;
         });
+        created.forEach((fish,index)=>{assignments[fish.id]=slots[index];});
         const first=created[0];
-        const next=migrate({...state,fish:[...created,...state.fish],nextFishId:start+created.length,selected:first.id,[first.sex==='F'?'mother':'father']:first.id});
+        const next=migrate({...state,tankAssignments:assignments,fish:[...created,...state.fish],nextFishId:start+created.length,selected:first.id,[first.sex==='F'?'mother':'father']:first.id});
         next.log=[created.length===1?first.name+' aggiunto alla vasca.':created.length+' pesci aggiunti alla vasca.',...state.log].slice(0,5);commit(next);
       },
       breed() {

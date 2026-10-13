@@ -549,5 +549,9 @@ window.BettaTypes = (() => {
       genes:{...colorBase,...color.genes},
       seed:Math.floor(Math.random()*899999)+100000,age:4,gen:0,parents:null,phase:0};
   }
-  return {colorName,forms,colors,guideColors,colorAliases,colorLoci,randomColor,inheritColors,labels,normalize,traits,name,inherit,forecast,predict,distribution,development,specimen};
+  const traitChoices=[{id:'dumbo',name:'Dumbo'},{id:'crowntail',name:'Crowntail'},{id:'doubletail',name:'Doubletail'},{id:'halfmoon',name:'Halfmoon (180° o più)'},{id:'plakat',name:'Pinne corte'},{id:'long',name:'Pinne lunghe'},{id:'veiltail',name:'Veiltail'},{id:'spade',name:'Spadetail'}];
+  const carrierChoices=[{id:'doubletail',name:'Portatore Doubletail (Dd)',locus:'D',pair:'Dd'},{id:'dumbo',name:'Portatore Dumbo (Ee)',locus:'E',pair:'Ee'},{id:'plakat',name:'Portatore pinne corte (Ll)',locus:'L',pair:'Ll'},{id:'crowntail',name:'Allele Crowntail (Ww)',locus:'W',pair:'Ww'}];
+  function matchesTrait(f,id){if(!id||id==='all')return true;if(window.BettaSpecies&&!window.BettaSpecies.ornamental(f))return false;const t=traits(f);return {dumbo:t.dumbo,crowntail:t.crown>=.8,doubletail:t.split,halfmoon:!t.short&&t.spread>=3&&t.veil<.5&&t.spade<.5&&t.crown<.8,plakat:t.short,long:!t.short,veiltail:t.veil>=.5,spade:t.spade>=.5}[id]===true;}
+  function matchesCarrier(f,id){if(!id||id==='all')return true;const choice=carrierChoices.find(c=>c.id===id);return !!choice&&f.form?.[choice.locus]===choice.pair;}
+  return {traitChoices,carrierChoices,matchesTrait,matchesCarrier,colorName,forms,colors,guideColors,colorAliases,colorLoci,randomColor,inheritColors,labels,normalize,traits,name,inherit,forecast,predict,distribution,development,specimen};
 })();

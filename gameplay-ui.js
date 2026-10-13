@@ -8,20 +8,40 @@
  const run=fn=>{try{fn();notice.textContent='';}catch(e){notice.textContent=e.message;}};
  const open=(which='diary')=>{tab=which;render();if(!dialog.open)dialog.showModal();};
  for(const container of [document.querySelector('.room-pan'),document.querySelector('.top-right')])container.prepend(button('Diario e attività',()=>open(),'life-open-'+(container.classList.contains('room-pan')?'room':'lab')));
- function genealogy(s,id,depth=0,seen=new Set()){
-  const f=[...s.fish,...(s.career?.archive||[])].find(f=>f.id===id),item=node('li');
-  item.append(node('strong',f?.name||'Esemplare #'+id),node('small',f?s.fish.some(x=>x.id===id)?' · in allevamento':' · nello storico':' · dati non disponibili'));
-  if(depth<5&&!seen.has(id)&&f?.parents){const branch=node('ul'),path=new Set(seen);path.add(id);for(const parent of f.parents)branch.append(genealogy(s,parent,depth+1,path));item.append(branch);}return item;
+ const expandedGenes=new Set(),collapsedGenes=new Set(),openGenotypes=new Set();
+ function familyRecords(s){return new Map([...(s.career?.archive||[]),...(s.fishArchive||[]),...s.fish].map(f=>[f.id,f]));}
+ function genealogy(s,records,id,depth=0,path='root',seen=new Set(),budget={count:0}){
+  const f=records.get(id),item=node('li');if(++budget.count>80){item.append(node('small','Apri un altro ramo per continuare.'));return item;}
+  const card=node('article',undefined,'pedigree-card');card.dataset.fishId=id;
+  if(f?.genes&&f?.form){const image=node('img');image.className='pedigree-preview';image.width=256;image.height=160;image.alt='Anteprima 3D: '+f.name;card.append(image);window.betta3d?.thumbnail(image,f);}
+  const center=button(f?.name||'Esemplare #'+id,()=>{geneId=id;expandedGenes.clear();collapsedGenes.clear();render();});center.className='pedigree-name';center.disabled=!f;card.append(center);
+  const alive=s.fish.some(x=>x.id===id);
+  card.append(node('small','#'+id+(f?.gen!==undefined?' · F'+f.gen:'')+(f?.sex?' · '+(f.sex==='F'?'Femmina':'Maschio'):'')),node('small',f?alive?'In allevamento':'Nello storico':'Dati non disponibili'));
+  if(f?.genes&&f?.form){
+   card.append(node('p',BettaTypes.name(f),'pedigree-traits'),node('small',BettaTypes.colorName(f)));
+   const details=node('details'),summary=node('summary','Genotipo'),genes=node('div',undefined,'pedigree-genes');details.open=openGenotypes.has(id);details.ontoggle=()=>{if(details.isConnected){if(details.open)openGenotypes.add(id);else openGenotypes.delete(id);}};
+   for(const [field,title] of [['form','Forma'],['genes','Colore']]){genes.append(node('strong',title));for(const [locus,pair] of Object.entries(f[field])){const value=node('span');value.append(node('span',field==='form'?BettaTypes.labels[locus]||locus:locus),': ',node('b',pair));genes.append(value);}}
+   details.append(summary,genes);card.append(details,button('Passaporto',()=>window.bettaPassport?.open(id)));
+   if(alive)card.append(button('Osserva',()=>{dialog.close();window.betta3d?.openLaboratory();store.select(id);}));
+  }
+  item.append(card);
+  if(seen.has(id)){card.append(node('small','Ascendenza già mostrata in questo ramo.'));return item;}
+  if(f?.parents&&depth<8){
+   const visible=expandedGenes.has(path)||depth<2&&!collapsedGenes.has(path),toggle=button(visible?'Nascondi genitori':'Mostra genitori',()=>{if(visible){expandedGenes.delete(path);collapsedGenes.add(path);}else{expandedGenes.add(path);collapsedGenes.delete(path);}render();content.querySelector('[data-gene-path="'+path+'"]')?.focus();});toggle.dataset.genePath=path;toggle.setAttribute('aria-expanded',String(visible));card.append(toggle);
+   if(visible){const branch=node('ul'),nextSeen=new Set(seen);nextSeen.add(id);f.parents.forEach((parent,i)=>branch.append(genealogy(s,records,parent,depth+1,path+'-'+i,nextSeen,budget)));item.append(branch);}
+  }else if(f&&!f.parents)card.append(node('small','Fondatore'));
+  return item;
  }
  function render(){
-  const s=store.getState();content.replaceChildren();for(const b of nav.children)b.setAttribute('aria-pressed',String(b.dataset.lifeTab===tab));notice.textContent='';
+  const s=store.getState();dialog.classList.toggle('pedigree-dialog',tab==='genealogy');content.replaceChildren();for(const b of nav.children)b.setAttribute('aria-pressed',String(b.dataset.lifeTab===tab));notice.textContent='';
   if(tab==='diary'){
    content.append(node('h3','Una storia, nidiata dopo nidiata'),node('p','Nascite, prime livree, vendite e concorsi restano qui, insieme ai tuoi progressi.'));
    const events=s.diary||[];if(!events.length)content.append(node('p','Il diario comincia con la tua prossima esperienza.'));
    for(const e of [...events].reverse()){const row=node('article',undefined,'diary-event');row.append(node('small','Mese '+e.month),node('p',e.text));for(const id of e.fishIds.slice(0,4))row.append(button('Genealogia #'+id,()=>{geneId=id;tab='genealogy';render();}));content.append(row);}
   }else if(tab==='genealogy'){
-   content.append(node('h3','Albero genealogico'));const select=node('select');select.id='genealogy-fish';select.setAttribute('aria-label','Scegli il pesce per la genealogia');const fish=[...s.fish,...(s.career?.archive||[])];if(!fish.some(f=>f.id===geneId))geneId=s.selected;
-   for(const f of fish){const option=node('option',f.name+' · #'+f.id);option.value=f.id;select.append(option);}select.value=geneId;select.onchange=()=>{geneId=Number(select.value);render();};content.append(select);const tree=node('ul',undefined,'genealogy-tree');tree.append(genealogy(s,geneId));content.append(tree,node('p','Lo storico conserva anche i genitori venduti. La vista mostra fino a cinque generazioni di antenati.'));
+   content.append(node('h3','Albero genealogico'));const select=node('select');select.id='genealogy-fish';select.setAttribute('aria-label','Scegli il pesce per la genealogia');const records=familyRecords(s),fish=[...records.values()].sort((a,b)=>b.id-a.id);if(!records.has(geneId))geneId=s.selected;
+   for(const f of fish){const option=node('option',f.name+' · #'+f.id);option.value=f.id;select.append(option);}select.value=geneId;select.onchange=()=>{geneId=Number(select.value);expandedGenes.clear();collapsedGenes.clear();render();};content.append(select,node('p','Seleziona un antenato per centrare il suo albero. Apri i rami per esplorare le generazioni.'));
+   const viewport=node('div',undefined,'pedigree-viewport'),tree=node('ul',undefined,'genealogy-tree pedigree-tree');tree.setAttribute('aria-label','Albero genealogico');tree.append(genealogy(s,records,geneId));viewport.append(tree);content.append(viewport,node('p','Lo storico conserva aspetto e genotipo degli esemplari venduti o rimossi.'));
   }else if(tab==='photos'){
    content.append(node('h3','Il tuo album fotografico'),button('Entra in modalità foto',()=>{dialog.close();enterPhoto();}));const grid=node('div',undefined,'life-grid');
    for(const [i,p] of (s.photos||[]).entries()){const card=node('article'),image=node('img');image.src=p.data;image.alt=p.caption;card.append(image,node('p',p.caption),node('small','Mese '+p.month),button('Scarica',()=>download(p.data,'fishchromia-foto-'+(i+1)+'.jpg')),button('Rimuovi foto',()=>run(()=>store.deletePhoto(i))));grid.append(card);}content.append(grid);if(!(s.photos||[]).length)content.append(node('p','Inquadra una vasca o un pesce e scatta la tua prima fotografia. L’album conserva le ultime dodici foto.'));
@@ -69,5 +89,5 @@
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&photoMode)exitPhoto();});
  const temperament=node('span',undefined,'view-note');temperament.id='fish-temperament';document.querySelector('.observation-heading').append(temperament);
  let previous=store.getState();temperament.textContent='Temperamento: '+['tranquillo','curioso','vivace'][Math.abs(window.bettaSelected().seed)%3];store.subscribe(()=>{const s=store.getState();for(const event of (s.diary||[]).filter(e=>(e.id||0)>(previous.diary?.at(-1)?.id||0))){const sound={birth:'brood',sale:'sale',discovery:'discovery',contest:'contest',photo:'photo',month:'month'}[event.kind];if(sound)window.FishAudio?.effect(sound);}previous=s;temperament.textContent='Temperamento: '+['tranquillo','curioso','vivace'][Math.abs(window.bettaSelected().seed)%3];updateGuide(s);if(dialog.open)render();});updateGuide(previous);
- window.bettaLife={open,enterPhoto,exitPhoto,getState:()=>({tab,photoMode,paused,tutorialStep:guideStep(store.getState())})};
+ window.bettaLife={open,openGenealogy:id=>{geneId=id;expandedGenes.clear();collapsedGenes.clear();open('genealogy');},enterPhoto,exitPhoto,getState:()=>({tab,photoMode,paused,tutorialStep:guideStep(store.getState())})};
 })();
