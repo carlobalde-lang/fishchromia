@@ -7,8 +7,8 @@
  const notice=node('p','','career-notice');notice.setAttribute('role','status');dialog.append(notice);
  const stats=node('div',undefined,'career-stats'),tabs=node('nav',undefined,'career-tabs'),content=node('div',undefined,'career-content');dialog.append(stats,tabs,content);
  const footer=node('footer'),switchMode=node('button','Cambia modalità / pesci','secondary');switchMode.onclick=()=>{try{sessionStorage.removeItem('fishchromia-mode');sessionStorage.removeItem('fishchromia-collection');}catch{}location.reload();};footer.append(node('p','Carriera e creativa hanno salvataggi separati. Il cambio di modalità conserva i progressi.'),switchMode);dialog.append(footer);document.body.append(dialog);
- const buttons=[];for(const container of [document.querySelector('.room-header'),document.querySelector('.top-right')]){const b=node('button','','room-button career-open');b.onclick=()=>open();container.append(b);buttons.push(b);}
- let tab='shop',goal=null,guideMemo=null,guidePair=null,marketRoute=null;
+ const buttons=[];for(const container of [document.querySelector('.room-header'),document.querySelector('.top-right')]){const b=node('button','','room-button career-open');b.type='button';b.setAttribute('aria-haspopup','dialog');b.setAttribute('aria-controls','career-panel');b.append(node('span','','career-entry-label'),node('small','','career-entry-status'));b.onclick=()=>open();container.append(b);buttons.push(b);}
+ let tab='overview',goal=null,guideMemo=null,guidePair=null,marketRoute=null;
  const flowKey='fishchromia-flow-'+(window.FishCollection?.discus?'discus':'betta');
  try{const saved=JSON.parse(localStorage.getItem(flowKey)||'null');if(saved&&BettaCareer.byId(saved.goal)){goal=saved.goal;const r=saved.route;if(r&&r.goal===goal&&BettaCareer.byId(r.pair?.mother?.colorId)&&BettaCareer.byId(r.pair?.father?.colorId))marketRoute=r;}}catch{}
  function saveFlow(){try{localStorage.setItem(flowKey,JSON.stringify({goal,route:marketRoute}));}catch{}}
@@ -77,7 +77,7 @@
   content.append(panel);
  }
 
- const titles={shop:'Negozio',album:'Album',market:'Riproduttori',orders:'Ordini',house:'Casa'};
+ const titles={overview:'Riepilogo',shop:'Negozio',album:'Album',market:'Acquista riproduttori',orders:'Ordini',house:'Ampliamenti'};
  for(const [id,title] of Object.entries(titles)){const b=node('button',title);b.dataset.tab=id;b.onclick=()=>changeTab(id);tabs.append(b);}
  function action(type,data){
   const scroll=dialog.scrollTop,focus=document.activeElement,focusId=focus?.dataset.focusKey;
@@ -101,18 +101,39 @@
   for(const v of c.visits.slice(0,6)){const row=node('article',undefined,'customer-visit'+(v.bought?' customer-purchase':''));row.append(node('strong',(v.bought?'✓ Acquisto · ':'Visita · ')+v.name),node('p',v.message),node('small','Budget '+v.budget+' ◈'));visits.append(row);}
  }
  const priceDrafts=new Map(),saleDrafts=new Map();let saleSelection=null,shopTank=null;
+ function renderOverview(s){
+  const c=s.career,tr=text=>window.FishI18n?.translate(text)||text;
+  content.append(node('h3','Il prossimo passo'),node('p','Obiettivi, attività e risorse del tuo allevamento.'));
+  const grid=node('div',undefined,'career-overview');
+  function card(title,id){const section=node('section',undefined,'career-card overview-card');section.dataset.overview=id;section.append(node('h3',title));grid.append(section);return section;}
+  function metric(section,label,value){const row=node('p',undefined,'overview-metric');row.append(node('span',label),node('strong',String(value)));section.append(row);}
+  function route(section,label,next){section.append(button(label,()=>changeTab(next)));}
+  const target=card('Obiettivo di allevamento','goal');
+  if(goal){target.append(node('strong',tr(BettaCareer.byId(goal).name)));const step=nextStep(s);target.append(node('p',step.text),button(step.label,step.run));}
+  else{target.append(node('p','Scegli una livrea da scoprire: la guida ti accompagnerà negli incroci.'));route(target,'Scegli una livrea','album');}
+  const orders=card('Ordini attivi','orders'),active=c.orders.filter(o=>o.status==='accepted');
+  if(!active.length)orders.append(node('p','Non hai ordini attivi. Puoi scegliere una richiesta da accettare.'));
+  for(const order of active){const row=node('article',undefined,'overview-order'),name=BettaCareer.regulars.find(r=>r.id===order.customerId)?.name||tr('Ordine');row.append(node('strong',name+' · '+tr(BettaCareer.byId(order.colorId).name)),node('p',tr('Scadenza')+': '+tr('Mese')+' '+order.deadline+' · '+order.reward+' ◈'));const list=node('ul');for(const requirement of BettaCareer.orderRequirements(order))list.append(node('li',requirement));row.append(list);orders.append(row);}
+  route(orders,'Gestisci ordini','orders');
+  const shop=card('Negozio','shop');metric(shop,'Pesci in vendita',c.listings.length+' / '+c.shopSlots*4);
+  const latest=c.visits.find(v=>v.bought);shop.append(node('p',latest?tr('Ultimo acquisto')+': '+latest.name:'Non ci sono ancora acquisti registrati.'));if(latest)shop.append(node('p',latest.message));route(shop,'Gestisci negozio','shop');
+  const album=card('Livree scoperte','album'),found=Object.keys(c.discoveries).length;metric(album,'Scoperte',found+' / '+BettaTypes.colors.length);const progress=node('progress');progress.max=BettaTypes.colors.length;progress.value=found;progress.setAttribute('aria-label','Livree scoperte');album.append(progress);route(album,'Apri album','album');
+  const space=card('Spazio disponibile','space');metric(space,'Posti liberi',Math.max(0,c.capacity-s.fish.length));metric(space,'Pesci presenti',s.fish.length+' / '+c.capacity);route(space,'Vedi ampliamenti','house');
+  const activities=card('Attività e concorsi','activities');activities.append(node('p','Segui clienti, concorsi e diario del tuo allevamento.'));for(const [label,tab] of [['Clienti','customers'],['Concorsi','contests'],['Diario','diary']])activities.append(button(label,()=>{dialog.close();window.bettaLife.open(tab);}));
+  content.append(grid);
+ }
  let stableContentKey=null;
  function render(){
   const s=appStore.getState(),c=s.career,creative=s.mode!=='career';
   refreshGuide(s);
-  for(const b of buttons)b.textContent=creative?'Creativa · modalità':'Carriera · '+c.cash+' ◈';
+  for(const b of buttons){b.dataset.mode=s.mode;b.querySelector('.career-entry-label').textContent=creative?'Modalità e salvataggi':'Gestisci allevamento';b.querySelector('.career-entry-status').textContent=creative?'Modalità creativa':'Carriera · '+c.cash+' ◈';}
   if(!dialog.open&&!render.force)return;
   heading.textContent=creative?'Modalità creativa':'La tua carriera';tabs.hidden=creative;stats.hidden=creative;
   if(creative){content.replaceChildren(node('p','Catalogo completo e incroci liberi. Il tuo allevamento originale è conservato qui.'));return;}
   stats.replaceChildren(...[c.cash+' monete',c.reputation+' reputazione',s.fish.length+' / '+c.capacity+' pesci',Object.keys(c.discoveries).length+' / '+BettaTypes.colors.length+' livree'].map(v=>node('span',v)));
   for(const b of tabs.children)b.setAttribute('aria-pressed',String(b.dataset.tab===tab));
   // Customer arrivals update the counters without rebuilding unchanged previews.
-  const key=JSON.stringify([tab,goal,guidePair,s.month,s.fish,c.listings,c.discoveries,c.orders,c.capacity,c.shopSlots,c.expansions,shopTank,tab==='market'?c.cash:null]);
+  const key=JSON.stringify([tab,goal,guidePair,s.month,s.fish,c.listings,c.discoveries,c.orders,c.capacity,c.shopSlots,c.expansions,shopTank,(tab==='market'||tab==='overview')?c.cash:null,tab==='overview'?c.visits:null,c.reputation]);
   if(key===stableContentKey){if(tab==='shop')renderVisits(c);return;}
   stableContentKey=key;
   const focused=document.activeElement,focusedKey=focused?.dataset.focusKey,focusedId=focused?.id;
@@ -120,7 +141,9 @@
   content.replaceChildren();
   function restoreView(){const control=focusedKey?[...content.querySelectorAll('[data-focus-key]')].find(el=>el.dataset.focusKey===focusedKey):focusedId?document.getElementById(focusedId):null;if(control&&content.contains(control))control.focus({preventScroll:true});dialog.scrollTop=scroll;for(const el of content.querySelectorAll('details[data-detail]'))el.open=details.includes(el.dataset.detail);}
   
-  if(tab==='shop'){
+  if(tab==='overview'){
+   renderOverview(s);
+  }else if(tab==='shop'){
    content.append(button('Acquista piante, sassi e radici',()=>{dialog.close();window.BettaDecorUI?.openShop();}));
    content.append(node('h3','Pesci in vendita · '+c.listings.length+' / '+(c.shopSlots*4)),node('p','I clienti arrivano a intervalli casuali durante il mese mentre giochi. Ogni cliente valuta un pesce compatibile con i suoi gusti e il budget.'));
    const visit=button('Visita la Stanza 3 · negozio',()=>{dialog.close();window.betta3d?.openShop();});content.append(visit);
@@ -182,9 +205,10 @@
   restoreView();
  }
  const draw=()=>{render.force=true;render();render.force=false;};
+ document.addEventListener('fish-language-change',()=>{if(dialog.open&&tab==='overview'){stableContentKey=null;draw();}});
  // Populate before showModal as well as after store updates.
- for(const b of buttons)b.onclick=()=>{draw();notice.textContent='';dialog.showModal();};
- window.bettaCareerUI.open=(which,tank=null)=>{if(which==='shop')shopTank=tank;if(which&&which!==tab)changeTab(which);else draw();notice.textContent='';if(!dialog.open)dialog.showModal();dialog.scrollTop=tabScroll.get(tab)||0;};
+ for(const b of buttons)b.onclick=()=>{changeTab('overview');draw();notice.textContent='';dialog.showModal();dialog.scrollTop=0;};
+ window.bettaCareerUI.open=(which='overview',tank=null)=>{if(which==='shop')shopTank=tank;if(which&&which!==tab)changeTab(which);else draw();notice.textContent='';if(!dialog.open)dialog.showModal();dialog.scrollTop=tabScroll.get(tab)||0;};
  window.bettaCareerUI.openTankShop=tank=>window.bettaCareerUI.open('shop',tank);
  appStore.subscribe(render);render();
  let customerTick=performance.now();
@@ -195,6 +219,6 @@
  document.addEventListener('visibilitychange',()=>{customerTick=performance.now();});
  if(state.mode==='career'){
   document.getElementById('open-catalog').textContent='Acquista riproduttori';document.getElementById('open-catalog').onclick=()=>window.bettaCareerUI.open('market');
-  const sell=button('Esponi nel negozio',()=>window.bettaCareerUI.open('shop'));sell.id='open-sale';document.querySelector('.fish-info').append(sell);
+  const sell=button('Esponi nel negozio',()=>window.bettaCareerUI.open('shop'));sell.id='open-sale';document.getElementById('fish-actions').insertBefore(sell,document.getElementById('fish-more-actions'));
  }
 })();

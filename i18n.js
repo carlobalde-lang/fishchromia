@@ -27,7 +27,7 @@ window.FishI18n=(()=>{
     'Sposta tutti i pesci selezionati nello stesso acquario.':'Move all selected fish into the same aquarium.','1 pesce selezionato':'1 selected fish','Ctrl/Cmd: aggiungi o rimuovi · Shift: seleziona un intervallo.':'Ctrl/Cmd: add or remove · Shift: select a range.','Seleziona visibili':'Select visible','Deseleziona':'Deselect','Sposta selezionati':'Move selected','Metti in vendita':'List for sale','Ritira dalla vendita':'Withdraw from sale','Elimina selezionati':'Delete selected',
     'Sposta lungo gli assi':'Move along axes','Ruota':'Rotate','Altezza':'Height','Altezza della decorazione non valida.':'Invalid decoration height.','Trascina le frecce colorate per spostare lungo un asse. Usa l’anello per ruotare. W: sposta · E: ruota.':'Drag the colored arrows to move along an axis. Use the ring to rotate. W: move · E: rotate.',
     'Vista 3D':'3D view','Mostra controlli':'Show controls','Nella vista 3D, clicca una pianta, un sasso o una radice e trascinala per spostarla. Puoi muovere anche l’arredamento iniziale.':'In the 3D view, click a plant, stone or root and drag it to move it. You can also move the initial decoration.','Arredamento iniziale selezionato: trascinalo nella vista 3D.':'Initial decoration selected: drag it in the 3D view.','Posizione dell’arredamento iniziale non valida.':'Invalid initial decoration position.',
-    'Creativa · modalità':'Creative mode','Acquario 0':'Aquarium 0','Acquario pieno: massimo 100 pesci.':'Tank full: maximum 100 fish.','Acquario zero':'Aquarium zero','Rigenera casualmente':'Randomize decoration','Sposta il pesce dall’acquario zero prima di venderlo.':'Move the fish out of aquarium zero before selling it.','Seme allestimento non valido.':'Invalid decoration seed.',
+    "Scegli una livrea":"Choose a coat","Strumenti":"Tools","Strumenti della stanza":"Room tools","Altre azioni":"More actions","Riepilogo":"Overview","Acquista riproduttori":"Buy breeding fish","Ampliamenti":"Expansions","Il prossimo passo":"Your next step","Obiettivi, attività e risorse del tuo allevamento.":"Goals, activities and resources in your fishroom.","Obiettivo di allevamento":"Breeding goal","Scegli una livrea da scoprire: la guida ti accompagnerà negli incroci.":"Choose a coat to discover: the guide will help you plan your crosses.","Ordini attivi":"Active orders","Non hai ordini attivi. Puoi scegliere una richiesta da accettare.":"You have no active orders. Choose a request to accept.","Gestisci ordini":"Manage orders","Ultimo acquisto":"Latest purchase","Non ci sono ancora acquisti registrati.":"No purchases have been recorded yet.","Gestisci negozio":"Manage shop","Livree scoperte":"Discovered coats","Apri album":"Open album","Spazio disponibile":"Available space","Posti liberi":"Free spaces","Pesci presenti":"Current fish","Vedi ampliamenti":"View expansions","Attività e concorsi":"Activities and competitions","Segui clienti, concorsi e diario del tuo allevamento.":"Follow your customers, competitions and fishroom diary.","Scadenza":"Deadline","Mese":"Month","Pesci in vendita":"Fish for sale",'Gestisci allevamento':'Manage fishroom','Modalità e salvataggi':'Modes and saves','Creativa · modalità':'Creative mode','Acquario 0':'Aquarium 0','Acquario pieno: massimo 100 pesci.':'Tank full: maximum 100 fish.','Acquario zero':'Aquarium zero','Rigenera casualmente':'Randomize decoration','Sposta il pesce dall’acquario zero prima di venderlo.':'Move the fish out of aquarium zero before selling it.','Seme allestimento non valido.':'Invalid decoration seed.',
     'Fishchromia · Genetica e livree':'Fishchromia · Genetics and coats',
     'La tua casa.':'Your home.','Il tuo allevamento.':'Your fishroom.',
     'Scegli come giocare, poi scegli Betta o Discus. Ogni allevamento e modalità ha il proprio salvataggio.':'Choose how to play, then choose Betta or Discus. Each fishroom and mode has its own save.',
@@ -566,7 +566,48 @@ window.FishI18n=(()=>{
 }))translations.set(it,en);
   for(const [it,en] of Object.entries({"Stanza degli acquari: seleziona una vasca": "Aquarium room: select a tank", "Pesce da esporre": "Fish to list", "Prezzo in monete": "Price in coins", "Nome, forma o numero…": "Name, type or number…", "Chiudi catalogo": "Close catalog", "Chiudi dettagli genetici": "Close genetic details", "Anteprima procedurale del betta selezionato": "Procedural preview of the selected betta", "Indietro": "Back", "Avanti": "Next"}))translations.set(it,en);
   translations.set('Stanza degli acquari','Aquarium room');translations.set('Sposta la visuale','Move the view');
+  for(const [it,en] of Object.entries({
+    'Seme':'Seed','Pronto':'Ready','Preparazione del gioco':'Preparing the game',
+    'Confronta genitori':'Compare parents','Confronto tra genitori':'Parent comparison',
+    'Seleziona entrambi i genitori per confrontarli.':'Select both parents to compare them.',
+    'Le differenze sono evidenziate. Gli alleli descrivono il modello del gioco.':'Differences are highlighted. Alleles describe the game model.',
+    'Dato':'Detail','Dati dei genitori':'Parent details','Tratti visibili':'Visible traits',
+    'Stato riproduttivo':'Breeding status','Pronto per l’incrocio':'Ready to breed',
+    'Confronta gli alleli':'Compare alleles','Genotipo delle pinne':'Fin genotype',
+    'Genotipo del colore':'Colour genotype','Nessuno':'None',
+    'Substrato':'Substrate','Sabbia chiara':'Light sand','Sabbia scura':'Dark sand','Ghiaia':'Gravel',
+    'Illuminazione':'Lighting','Luce neutra':'Neutral light','Luce calda':'Warm light','Luce fitostimolante':'Plant grow light',
+    'Substrato non valido.':'Invalid substrate.','Illuminazione non valida.':'Invalid lighting.',
+    'Seme del pesce':'Fish seed','Nuovo seme':'New seed','Genera un nuovo seme':'Generate a new seed',
+    'Inserisci un seme intero tra 0 e 9999999.':'Enter an integer seed from 0 to 9999999.',
+    'Scegli la modalità':'Choose the mode',
+    'Una coppia per ogni tipologia è pronta per l’allevamento.':'A pair of each type is ready for breeding.',
+    'Caricamento delle regole…':'Loading the rules…',
+    'Lettura dell’allevamento…':'Reading your fishroom…',
+    'Preparazione della grafica della stanza…':'Preparing the room graphics…',
+    'Preparazione del laboratorio…':'Preparing the laboratory…',
+    'Preparazione delle anteprime…':'Preparing the previews…',
+    'Apertura della stanza…':'Opening the room…'
+  }))translations.set(it,en);
   const patterns=[
+    [/\b(\d+) pesci sono ora pronti per la riproduzione\b/g,'$1 fish are now ready to breed'],
+    [/\b(\d+) pesci stanno ancora crescendo \(sviluppo completo a 4 mesi\)/g,'$1 fish are still growing (fully grown at 4 months)'],
+    [/\bTutti i pesci hanno completato la crescita\b/g,'All fish are fully grown'],
+    [/\bTutti gli esemplari sono adulti\b/g,'All fish are adults'],
+    [/\bCombinazione ereditata\b/g,'Inherited combination'],
+
+    [/^Tratti da riunire: /,'Traits to combine: '],
+    [/^Tratti mancanti: /,'Missing traits: '],
+    [/^Coppia consigliata per /,'Recommended pair for '],
+    [/^Cerca (.+) per introdurre (.+) · disponibile ora nel mercato\.$/,'Look for $1 to introduce $2 · available in the market now.'],
+    [/^Capienza attuale: /,'Current capacity: '],
+    [/^Vetrine allestite: /,'Display tanks set up: '],
+    [/^Allestisci altre (\d+) vetrine/,'Set up $1 more display tanks'],
+    [/\bscegli una livrea\./g,'choose a coat.'],
+    [/\bBlu\b/g,'Blue'],
+    [/^SEME /,'SEED '],
+    [/^Preparazione degli acquari · /,'Preparing the aquariums · '],
+    [/^Preparazione delle anteprime · /,'Preparing the previews · '],
     [/^Acquistato: (.+)\. Utilizzabile in tutti gli acquari\.$/,(_,name)=>'Purchased: '+(translations.get(name)||name)+'. Available in every aquarium.'],
 
     [/^Modifica targhetta /,'Edit label '],[/^Prezzo di /,'Price for '],
@@ -672,6 +713,8 @@ window.FishI18n=(()=>{
     [/\bocchi rossi\b/g,'red eyes'],[/\bocchi arancio\b/g,'orange eyes'],
     [/\bocchi argentei\b/g,'silver eyes'],[/\biride multicolore\b/g,'multicolored iris'],
     [/\bcombinazione ereditata\b/g,'inherited combination'],[/\bpigmento scuro\b/g,'dark pigment'],
+    [/\b(\d+) piccoli\b/g,'$1 fry'],
+    [/\bAccettato\b/g,'Accepted'],[/\bConsegnato\b/g,'Delivered'],[/\bScaduto\b/g,'Expired'],
     [/\bdisegno variabile\b/g,'variable pattern'],[/\bper un mese\b/g,'for one month']
   ];
   for(const name of ['Rosetta','Felce acquatica','Vallisneria','Pianta a stelo','Anubias','Muschio','Galleggiante','Cryptocoryne','Loto','Pianta rossa','Pianta piumosa','Sasso di fiume','Roccia frastagliata','Gruppo di sassolini','Radice ramificata','Radici intrecciate','Radice ad arco'])patterns.push([new RegExp('^'+name+'(?= · | [0-9]+$)'),translations.get(name)||name]);
@@ -680,7 +723,7 @@ window.FishI18n=(()=>{
   function translate(source,requestedLanguage=language){
     if(requestedLanguage==='it')return source;
     const trimmed=source.trim();if(!trimmed)return source;
-    let result=translations.get(trimmed);
+    let result=translations.get(trimmed)??translations.get(trimmed.replace(/\bseme\b/g,'seed'));
     if(result===undefined)result=longTranslations.find(([prefix])=>trimmed.startsWith(prefix))?.[1];
     if(result===undefined){result=trimmed;for(const [pattern,replacement] of patterns)result=result.replace(pattern,replacement);}
     return source.slice(0,source.indexOf(trimmed))+result+source.slice(source.indexOf(trimmed)+trimmed.length);
@@ -698,7 +741,7 @@ window.FishI18n=(()=>{
     }
     for(const child of root.childNodes)visit(child);
   }
-  function refresh(){document.documentElement.lang=language;visit(document.documentElement);}
+  function refresh(){document.documentElement.lang=language;visit(document.documentElement);document.documentElement.setAttribute('data-language-ready','true');}
   const control=document.createElement('div');control.id='fish-language-control';control.innerHTML='<label for="fish-language">Lingua</label><select id="fish-language" aria-label="Lingua"><option value="en">Inglese</option><option value="it">Italiano</option></select>';
   document.body.append(control);control.querySelector('select').value=language;
   control.querySelector('select').onchange=event=>{language=event.target.value;try{localStorage.setItem('fishchromia-language',language);}catch{}refresh();document.dispatchEvent(new Event('fish-language-change'));};
@@ -706,3 +749,4 @@ window.FishI18n=(()=>{
   observer.observe(document.documentElement,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['placeholder','title','aria-label','alt','data-caption']});
   refresh();return {get language(){return language;},translate,refresh};
 })();
+

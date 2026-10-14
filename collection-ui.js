@@ -1,11 +1,9 @@
 'use strict';
 if(window.FishCollection?.discus){
  document.title='Discus Lab · Genetica e livree';
- document.querySelector('.room-brand span').innerHTML='DISCUS / LAB<small>LA CASA DEI DISCUS</small>';
- document.querySelector('.brand strong').textContent='DISCUS / LAB';
  document.querySelector('#catalog .eyebrow').textContent='ATLANTE / DISCUS';
  document.querySelector('#catalog h2').textContent='Le livree dei discus.';
- document.querySelector('#catalog h2+p').textContent='Scegli livrea e sesso: creazione, osservazione e incroci funzionano come nell’allevamento Betta.';
+ document.querySelector('#catalog>p').textContent='Scegli livrea e sesso: creazione, osservazione e incroci funzionano come nell’allevamento Betta.';
  for(const selector of ['#catalog .color-audit','#catalog .sources']){
   const element=document.querySelector(selector);
   if(element)element.hidden=true;

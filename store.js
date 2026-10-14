@@ -29,9 +29,11 @@ window.BettaStore = (() => {
     for(const [key,layout] of Object.entries(value)){
       if(!tankKey(key)||!layout||typeof layout.base!=='boolean'||!Array.isArray(layout.items)||layout.items.length>16)throw Error('Allestimento non valido: massimo 16 decorazioni aggiunte per acquario.');
       const ids=new Set();
+      if(layout.substrate!==undefined&&!['sand','dark-sand','gravel'].includes(layout.substrate))throw Error('Substrato non valido.');
+      if(layout.lighting!==undefined&&!['neutral','warm','grow'].includes(layout.lighting))throw Error('Illuminazione non valida.');
       if(layout.baseSeed!==undefined&&(!integer(layout.baseSeed)||layout.baseSeed>4294967295))throw Error('Seme allestimento non valido.');
       const baseMoves=layout.baseMoves;if(baseMoves!==undefined&&(!Array.isArray(baseMoves)||baseMoves.length>18||new Set(baseMoves.map(m=>m?.key)).size!==baseMoves.length||baseMoves.some(m=>!m||!/^base:(plant:(?:[0-9]|1[0-5])|roots|rocks)$/.test(m.key)||!Number.isFinite(m.x)||Math.abs(m.x)>2.5||!Number.isFinite(m.z)||Math.abs(m.z)>1.2||m.lift!==undefined&&(!Number.isFinite(m.lift)||Math.abs(m.lift)>1.2)||m.angle!==undefined&&(!Number.isFinite(m.angle)||Math.abs(m.angle)>Math.PI*2))))throw Error('Posizione dell’arredamento iniziale non valida.');
-      result[key]={base:layout.base,...(baseMoves===undefined?{}:{baseMoves:baseMoves.map(m=>({key:m.key,x:m.x,z:m.z,...(m.lift===undefined?{}:{lift:m.lift}),...(m.angle===undefined?{}:{angle:m.angle})}))}),...(layout.baseSeed===undefined?{}:{baseSeed:layout.baseSeed}),items:layout.items.map(item=>{
+      result[key]={base:layout.base,...(layout.substrate===undefined?{}:{substrate:layout.substrate}),...(layout.lighting===undefined?{}:{lighting:layout.lighting}),...(baseMoves===undefined?{}:{baseMoves:baseMoves.map(m=>({key:m.key,x:m.x,z:m.z,...(m.lift===undefined?{}:{lift:m.lift}),...(m.angle===undefined?{}:{angle:m.angle})}))}),...(layout.baseSeed===undefined?{}:{baseSeed:layout.baseSeed}),items:layout.items.map(item=>{
         if(!item||!integer(item.id,1)||ids.has(item.id)||!decorCatalog.some(d=>d.id===item.type)||mode==='career'&&!owned.includes(item.type))throw Error('Decorazione non disponibile: acquistala nel negozio.');
         ids.add(item.id);
         if(item.lift!==undefined&&(!Number.isFinite(item.lift)||Math.abs(item.lift)>1.2))throw Error('Altezza della decorazione non valida.');

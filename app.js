@@ -63,15 +63,20 @@ function openMoveFish(id){
  if(home)target.value=home;target.disabled=!!listed;moveDialog.querySelector('[type="submit"]').disabled=!!listed;moveDialog.querySelector('.move-error').textContent='';moveDialog.showModal();target.focus();
 }
 moveDialog.querySelector('form').onsubmit=event=>{event.preventDefault();try{const key=$('#fish-move-target').value;if(key==='shop'){const current=appStore.getState(),fish=current.fish.find(f=>f.id===movingId);appStore.careerMany('list',movingIds);}else appStore.moveMany(movingIds,key);clearBrood();render();moveDialog.close();message(key==='shop'?'Pesce esposto in negozio al prezzo standard.':'Pesce spostato nell’acquario #'+BettaStore.tankNumber(key)+'.');}catch(e){moveDialog.querySelector('.move-error').textContent=e.message;}};
-const moveSelected=document.createElement('button');moveSelected.id='move-selected-fish';moveSelected.className='secondary';moveSelected.textContent='Sposta in un acquario';moveSelected.onclick=()=>openMoveFish(multiSelection.size>1?[...multiSelection]:selected().id);$('#export-fish').parentElement.append(moveSelected);
+const moveSelected=document.createElement('button');moveSelected.id='move-selected-fish';moveSelected.className='secondary';moveSelected.textContent='Sposta in un acquario';moveSelected.onclick=()=>openMoveFish(multiSelection.size>1?[...multiSelection]:selected().id);$('#fish-actions').prepend(moveSelected);
 const renameDialog=document.createElement('dialog');renameDialog.className='shelf-label-editor';renameDialog.innerHTML='<form><h2>Rinomina esemplare</h2><label for="fish-rename-input">Nome</label><input id="fish-rename-input" maxlength="120" required><p class="rename-error" role="status"></p><button type="submit">Salva nome</button><button type="button" class="rename-cancel">Annulla</button></form>';document.body.append(renameDialog);
-const deleteSelected=document.createElement('button');deleteSelected.id='delete-selected-fish';deleteSelected.type='button';deleteSelected.className='secondary';deleteSelected.textContent='Elimina pesce';moveSelected.after(deleteSelected);
+const deleteSelected=document.createElement('button');deleteSelected.id='delete-selected-fish';deleteSelected.type='button';deleteSelected.className='secondary';deleteSelected.textContent='Elimina pesce';$('#fish-more-menu').append(deleteSelected);
 deleteSelected.onclick=()=>{
   const fish=selected(),english=window.FishI18n?.language==='en';
-  if(!confirm(english?'Delete '+fish.name+' (#'+fish.id+') from the breeding collection? This cannot be undone.':'Eliminare '+fish.name+' (#'+fish.id+') dall’allevamento? Questa azione non può essere annullata.'))return;
+  if(!confirm(english?'Delete '+FishI18n.translate(fish.name)+' (#'+fish.id+') from the breeding collection? This cannot be undone.':'Eliminare '+fish.name+' (#'+fish.id+') dall’allevamento? Questa azione non può essere annullata.'))return;
   act(()=>{appStore.removeFish(fish.id);message(english?'Fish deleted.':'Pesce eliminato.');});
 };
-const renameButton=document.createElement('button');renameButton.type='button';renameButton.className='text-button';renameButton.textContent='Modifica nome';renameButton.onclick=()=>{renameDialog.querySelector('input').value=selected().name;renameDialog.querySelector('.rename-error').textContent='';renameDialog.showModal();renameDialog.querySelector('input').select();};$('#fish-name').after(renameButton);
+const renameButton=document.createElement('button');renameButton.type='button';renameButton.className='secondary';renameButton.id='rename-selected-fish';renameButton.textContent='Modifica nome';renameButton.onclick=()=>{renameDialog.querySelector('input').value=selected().name;renameDialog.querySelector('.rename-error').textContent='';renameDialog.showModal();renameDialog.querySelector('input').select();};$('#fish-more-menu').insertBefore(renameButton,deleteSelected);
+const moreActions=$('#fish-more-actions');
+moreActions.addEventListener('click',event=>{if(event.target.closest('button'))moreActions.open=false;});
+document.addEventListener('click',event=>{if(!moreActions.contains(event.target))moreActions.open=false;});
+moreActions.addEventListener('keydown',event=>{if(event.key==='Escape'&&moreActions.open){moreActions.open=false;moreActions.querySelector('summary').focus();event.stopPropagation();}});
+let actionFishId=state.selected;
 renameDialog.querySelector('.rename-cancel').onclick=()=>renameDialog.close();
 renameDialog.querySelector('form').onsubmit=event=>{event.preventDefault();try{appStore.renameFish(selected().id,renameDialog.querySelector('input').value);renameDialog.close();}catch(error){renameDialog.querySelector('.rename-error').textContent=error.message;}};
 const stage=$('#observation');stage.prepend(stage.querySelector('.fish-info'));stage.append($('#collection-panel'));
@@ -170,7 +175,7 @@ function renderGenome() {
   if (key === lastGenome) return;
   lastGenome = key;
   const ornamental = BettaSpecies.coatEnabled(fish);
-  $('#seed-label').textContent = 'SEED ' + fish.seed;
+  $('#seed-label').textContent = 'SEME ' + fish.seed;
   $('#color-genome-title').textContent = ornamental ? 'FATTORI CROMATICI DEL GIOCO' : 'SPECIE / ORIGINE';
   $('#form-genome-title').hidden = !ornamental;
   $('#form-genes').hidden = !ornamental;
@@ -212,11 +217,20 @@ function renderParents() {
     $(selector==='#mother-slot'?'#clear-mother':'#clear-father').hidden=!fish;
   }
 }
+const stickyBreed=document.createElement('div');stickyBreed.className='sticky-breed';stickyBreed.hidden=true;
+const stickyBreedHint=document.createElement('p');stickyBreedHint.id='sticky-breed-hint';stickyBreedHint.setAttribute('role','status');
+const stickyBreedButton=document.createElement('button');stickyBreedButton.id='sticky-breed';stickyBreedButton.type='button';stickyBreedButton.className='primary';stickyBreedButton.innerHTML='Genera nidiata <span>→</span>';stickyBreedButton.setAttribute('aria-describedby','sticky-breed-hint');
+const stickyBreedActions=document.createElement('div');stickyBreedActions.className='sticky-breed-actions';
+stickyBreedButton.onclick=()=>$('#breed').click();stickyBreedActions.append(stickyBreedButton);stickyBreed.append(stickyBreedHint,stickyBreedActions);$('#laboratory').append(stickyBreed);
 function renderForecast() {
   const [mom,dad] = parents();
   const compatibility = BettaSpecies.compatibility(mom,dad);
   const readiness=appStore.breedingStatus();
   $('#breed').disabled=!readiness.allowed;
+  stickyBreed.hidden=!mom&&!dad;
+  $('#laboratory').classList.toggle('has-sticky-breed',!stickyBreed.hidden);
+  stickyBreedButton.disabled=!readiness.allowed;
+  stickyBreedHint.textContent=readiness.reason;
   $('#breed-hint').textContent=readiness.reason;
   $('#breed-hint').classList.toggle('ready',readiness.allowed);
   $('#relationship').textContent = BettaStore.relationship(mom,dad);
@@ -348,6 +362,7 @@ function renderLog() {
 }
 function render() {
   state=appStore.getState();
+  if(actionFishId!==state.selected){moreActions.open=false;actionFishId=state.selected;}
   if(rosterView.brood&&!rosterView.brood.includes(state.selected))clearBrood();
   renderStage(); renderGenome(); renderParents(); renderForecast(); renderRoster(); renderLog();
   const status=appStore.getStatus();
@@ -395,7 +410,8 @@ $('#breed').onclick=()=>act(()=>{
 });
 function advanceMonth(){act(()=>{
   const result=appStore.advance();
-  message('Mese '+state.month+'. '+(result.matured?result.matured+' pesci sono diventati adulti. ':'')+(result.young?result.young+' piccoli stanno crescendo.':'Tutti gli esemplari sono adulti.'));
+  const growing=state.fish.filter(f=>f.age<4).length;
+  message('Mese '+state.month+'. '+(result.matured?result.matured+' pesci sono ora pronti per la riproduzione. ':'')+(growing?growing+' pesci stanno ancora crescendo (sviluppo completo a 4 mesi).':'Tutti i pesci hanno completato la crescita.'));
 });}
 $('#advance').onclick=advanceMonth;
 $('#room-advance').onclick=advanceMonth;

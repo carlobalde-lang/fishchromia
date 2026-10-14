@@ -1,7 +1,7 @@
 'use strict';
 document.getElementById('color-model-note').textContent=`${BettaTypes.colors.length} livree incrociabili, di cui sette originali di fantasia. Le regole cromatiche e i loro limiti sono descritti in «Modello genetico e fonti».`;
 const colorResearchNote=document.createElement('p');
-colorResearchNote.innerHTML='Il modello è ispirato alla ricerca, distinguendo gli effetti documentati da quelli ancora ipotetici. La distribuzione del blu sul corpo segue la direzione osservata per <i>alkal2l</i>; l’associazione con <i>bco1l</i> suggerisce una variazione della tonalità rossa. Nel gioco sono ipotetici l’intensità degli effetti, le interazioni fra rame, verde e oro e i motivi delle sette livree originali. Le sigle I, R e N sono fattori inventati, non geni reali. La resa dipende anche da seed, età e angolo di osservazione. <a href="https://www.frontiersin.org/journals/genome-editing/articles/10.3389/fgeed.2023.1167093/full" target="_blank" rel="noreferrer">Studio sperimentale ↗</a> · <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8906746/" target="_blank" rel="noreferrer">Studio genomico ↗</a>';
+colorResearchNote.innerHTML='Il modello è ispirato alla ricerca, distinguendo gli effetti documentati da quelli ancora ipotetici. La distribuzione del blu sul corpo segue la direzione osservata per <i>alkal2l</i>; l’associazione con <i>bco1l</i> suggerisce una variazione della tonalità rossa. Nel gioco sono ipotetici l’intensità degli effetti, le interazioni fra rame, verde e oro e i motivi delle sette livree originali. Le sigle I, R e N sono fattori inventati, non geni reali. La resa dipende anche dal seme, età e angolo di osservazione. <a href="https://www.frontiersin.org/journals/genome-editing/articles/10.3389/fgeed.2023.1167093/full" target="_blank" rel="noreferrer">Studio sperimentale ↗</a> · <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8906746/" target="_blank" rel="noreferrer">Studio genomico ↗</a>';
 document.getElementById('notes').querySelector('.sources').before(colorResearchNote);
 const catalog=$('#catalog'),grid=$('#type-grid'),controls=$('.catalog-controls');
 const colorSelect=$('#catalog-color'),sexSelect=$('#catalog-sex'),dumboInput=$('#catalog-dumbo');
@@ -11,10 +11,10 @@ for(const color of BettaTypes.colors){const option=document.createElement('optio
 let catalogForm=null,catalogColor=null,catalogRandomColor=BettaTypes.randomColor();
 const selectedColors=new Set();let selectionAnchor=-1;
 let catalogSeed=Math.floor(Math.random()*899999)+100000,seedRefresh,step='forms';
-const seedLabel=document.createElement('label');seedLabel.className='catalog-seed';seedLabel.textContent='Seed del pesce';
+const seedLabel=document.createElement('label');seedLabel.className='catalog-seed';seedLabel.textContent='Seme del pesce';
 const seedControls=document.createElement('span');seedControls.className='catalog-seed-controls';
-const seedInput=document.createElement('input');seedInput.id='catalog-seed';seedInput.type='number';seedInput.min='0';seedInput.max='9999999';seedInput.step='1';seedInput.value=String(catalogSeed);seedInput.setAttribute('aria-label','Seed del pesce');
-const rerollSeed=document.createElement('button');rerollSeed.type='button';rerollSeed.className='secondary';rerollSeed.textContent='↻';rerollSeed.title='Nuovo seed';rerollSeed.setAttribute('aria-label','Genera un nuovo seed');
+const seedInput=document.createElement('input');seedInput.id='catalog-seed';seedInput.type='number';seedInput.min='0';seedInput.max='9999999';seedInput.step='1';seedInput.value=String(catalogSeed);seedInput.setAttribute('aria-label','Seme del pesce');
+const rerollSeed=document.createElement('button');rerollSeed.type='button';rerollSeed.className='secondary';rerollSeed.textContent='↻';rerollSeed.title='Nuovo seme';rerollSeed.setAttribute('aria-label','Genera un nuovo seme');
 seedControls.append(seedInput,rerollSeed);seedLabel.append(seedControls);
 if(window.bettaMode==='creative')controls.append(seedLabel);
 const back=document.createElement('button');back.type='button';back.className='secondary catalog-back';back.textContent='← Cambia tipologia';back.hidden=true;controls.before(back);
@@ -90,12 +90,13 @@ function renderCatalog(){
 }
 function setCatalogSeed(value,immediate=false){
  const valid=Number.isSafeInteger(value)&&value>=0&&value<=9999999;
- seedInput.setCustomValidity(valid?'':'Inserisci un seed intero tra 0 e 9999999.');
+ seedInput.setCustomValidity(valid?'':FishI18n.translate('Inserisci un seme intero tra 0 e 9999999.'));
  clearTimeout(seedRefresh);
  if(valid){catalogSeed=value;if(immediate)renderCatalog();else seedRefresh=setTimeout(()=>{if(catalog.open)renderCatalog();},180);}
  updateSelection();
 }
 seedInput.oninput=()=>setCatalogSeed(seedInput.value===''?NaN:Number(seedInput.value));
+document.addEventListener('fish-language-change',()=>{seedInput.setCustomValidity(seedIsValid()?'':FishI18n.translate('Inserisci un seme intero tra 0 e 9999999.'));});
 rerollSeed.onclick=()=>{const value=Math.floor(Math.random()*899999)+100000;seedInput.value=String(value);setCatalogSeed(value,true)};
 back.onclick=()=>{step='forms';catalogColor=null;selectedColors.clear();selectionAnchor=-1;renderCatalog();catalog.scrollTop=0};
 $('#open-catalog').onclick=()=>{
