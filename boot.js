@@ -77,9 +77,11 @@ chooseMode().then(async mode=>{window.bettaMode=mode;window.fishCollection=await
     await loadScript('./career.js');
     await loadScript('./store.js');
     await loadScript('./breeding-guide.js');
+    await loadScript('./selection.js');
     window.bettaLoading.update(8,'Lettura dell’allevamento…');
     await loadScript('./app.js');
     await loadScript('./types-ui.js');
+    await loadScript('./selection-ui.js');
     await loadScript('./career-ui.js');
     await loadScript('./collection-ui.js');
     window.bettaLoading.update(12,'Preparazione del modello 3D…');

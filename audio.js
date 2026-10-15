@@ -1,7 +1,7 @@
 'use strict';
 window.FishAudio=(()=>{
  const el=(tag,text)=>{const e=document.createElement(tag);if(text)e.textContent=text;return e;};
- const control=el('button'),settings=el('button','⚙'),panel=el('dialog');control.id='fish-audio-toggle';settings.id='fish-audio-settings';settings.setAttribute('aria-label','Regola audio');panel.id='audio-panel';panel.setAttribute('aria-label','Musica e suoni');
+ const control=el('button'),settings=el('button','⚙'),panel=el('dialog');control.id='fish-audio-toggle';settings.id='fish-audio-settings';settings.setAttribute('aria-label','Impostazioni e suoni');panel.id='audio-panel';panel.setAttribute('aria-label','Impostazioni e suoni');
  let enabled=true,volumes={music:.65,ambience:.35,effects:.8};try{enabled=localStorage.getItem('fishchromia-audio')!=='off';const saved=JSON.parse(localStorage.getItem('fishchromia-audio-levels')||'null');if(saved)for(const key of Object.keys(volumes))if(Number.isFinite(saved[key]))volumes[key]=Math.max(0,Math.min(1,saved[key]));}catch{}
  let context,master,buses={},meters={},step=0,note=0,lastEffect=0;const chords=[[196,246.94,293.66],[174.61,220,261.63],[146.83,196,246.94],[164.81,220,293.66]];
  function label(){control.textContent=enabled?'♪':'♪̸';control.setAttribute('aria-label',enabled?'Disattiva musica e suoni':'Attiva musica e suoni');control.setAttribute('aria-pressed',String(enabled));}
@@ -34,7 +34,7 @@ window.FishAudio=(()=>{
   const notes={brood:[392,493.88,587.33],discovery:[523.25,659.25,783.99],sale:[659.25,880],contest:[392,523.25,659.25,1046.5],month:[293.66,392],photo:[880,659.25],tap:[523.25]};
   (notes[kind]||notes.tap).forEach((f,i)=>tone('effects',f,kind==='tap'?.10:.20,kind==='tap'?.14:.38,'sine',i*.10));
  }
- panel.append(el('h2','Musica e suoni'),el('p','Un ambiente tranquillo, con suoni discreti per i momenti importanti.'));
+ panel.append(el('h2','Impostazioni e suoni'),el('p','Un ambiente tranquillo, con suoni discreti per i momenti importanti.'));
  for(const [key,name] of [['music','Musica'],['ambience','Acqua e bollicine'],['effects','Effetti']]){const row=el('label',name),input=el('input'),value=el('output');input.type='range';input.min=0;input.max=100;input.value=Math.round(volumes[key]*100);input.id='volume-'+key;row.htmlFor=input.id;value.textContent=input.value+'%';input.oninput=()=>{volumes[key]=Number(input.value)/100;value.textContent=input.value+'%';levels();try{localStorage.setItem('fishchromia-audio-levels',JSON.stringify(volumes));}catch{}};row.append(input,value);panel.append(row);}
  const close=el('button','Chiudi');close.onclick=()=>panel.close();panel.append(close);settings.onclick=()=>panel.showModal();
  control.onclick=()=>{enabled=!enabled;try{localStorage.setItem('fishchromia-audio',enabled?'on':'off');}catch{}label();if(enabled){start();context?.resume();}else context?.suspend();};document.body.append(control,settings,panel);label();

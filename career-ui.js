@@ -205,7 +205,7 @@
   restoreView();
  }
  const draw=()=>{render.force=true;render();render.force=false;};
- document.addEventListener('fish-language-change',()=>{if(dialog.open&&tab==='overview'){stableContentKey=null;draw();}});
+ document.addEventListener('fish-language-change',()=>{if(dialog.open){stableContentKey=null;draw();}});
  // Populate before showModal as well as after store updates.
  for(const b of buttons)b.onclick=()=>{changeTab('overview');draw();notice.textContent='';dialog.showModal();dialog.scrollTop=0;};
  window.bettaCareerUI.open=(which='overview',tank=null)=>{if(which==='shop')shopTank=tank;if(which&&which!==tab)changeTab(which);else draw();notice.textContent='';if(!dialog.open)dialog.showModal();dialog.scrollTop=tabScroll.get(tab)||0;};

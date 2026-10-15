@@ -1,6 +1,7 @@
 'use strict';
 window.BettaStore = (() => {
   const VERSION = 2;
+  const backgrounds=['black','navy','blue','teal','green','grey','white','river','plants','rocks','image'];
   const isDiscus=!!window.FishCollection?.discus, tanksPerRoom=isDiscus?8:24;
   const KEY = 'fishchromia-creative-v1';
   const clone = value => JSON.parse(JSON.stringify(value));
@@ -29,11 +30,16 @@ window.BettaStore = (() => {
     for(const [key,layout] of Object.entries(value)){
       if(!tankKey(key)||!layout||typeof layout.base!=='boolean'||!Array.isArray(layout.items)||layout.items.length>16)throw Error('Allestimento non valido: massimo 16 decorazioni aggiunte per acquario.');
       const ids=new Set();
-      if(layout.substrate!==undefined&&!['sand','dark-sand','gravel'].includes(layout.substrate))throw Error('Substrato non valido.');
+      if(layout.substrate!==undefined&&!['sand','dark-sand','gravel','white-sand','ochre-sand','red-sand','aquasoil','river-gravel','basalt-gravel'].includes(layout.substrate))throw Error('Substrato non valido.');
+      if(layout.rockColor!==undefined&&!['natural','slate','basalt','limestone','white','sandstone','red','granite'].includes(layout.rockColor))throw Error('Colore rocce non valido.');
       if(layout.lighting!==undefined&&!['neutral','warm','grow'].includes(layout.lighting))throw Error('Illuminazione non valida.');
+      if(layout.background!==undefined&&!backgrounds.includes(layout.background))throw Error('Sfondo non valido.');
+      if(layout.backgroundImage!==undefined&&(typeof layout.backgroundImage!=='string'||layout.backgroundImage.length>180000||!/^data:image\/(jpeg|png);base64,[A-Za-z0-9+/=]+$/.test(layout.backgroundImage)))throw Error('Immagine di sfondo non valida.');
+      if(layout.background==='image'&&!layout.backgroundImage)throw Error('Carica un’immagine per lo sfondo.');
+      if(layout.backgroundImageName!==undefined&&(typeof layout.backgroundImageName!=='string'||layout.backgroundImageName.length>100))throw Error('Nome immagine non valido.');
       if(layout.baseSeed!==undefined&&(!integer(layout.baseSeed)||layout.baseSeed>4294967295))throw Error('Seme allestimento non valido.');
       const baseMoves=layout.baseMoves;if(baseMoves!==undefined&&(!Array.isArray(baseMoves)||baseMoves.length>18||new Set(baseMoves.map(m=>m?.key)).size!==baseMoves.length||baseMoves.some(m=>!m||!/^base:(plant:(?:[0-9]|1[0-5])|roots|rocks)$/.test(m.key)||!Number.isFinite(m.x)||Math.abs(m.x)>2.5||!Number.isFinite(m.z)||Math.abs(m.z)>1.2||m.lift!==undefined&&(!Number.isFinite(m.lift)||Math.abs(m.lift)>1.2)||m.angle!==undefined&&(!Number.isFinite(m.angle)||Math.abs(m.angle)>Math.PI*2))))throw Error('Posizione dell’arredamento iniziale non valida.');
-      result[key]={base:layout.base,...(layout.substrate===undefined?{}:{substrate:layout.substrate}),...(layout.lighting===undefined?{}:{lighting:layout.lighting}),...(baseMoves===undefined?{}:{baseMoves:baseMoves.map(m=>({key:m.key,x:m.x,z:m.z,...(m.lift===undefined?{}:{lift:m.lift}),...(m.angle===undefined?{}:{angle:m.angle})}))}),...(layout.baseSeed===undefined?{}:{baseSeed:layout.baseSeed}),items:layout.items.map(item=>{
+      result[key]={base:layout.base,...(layout.rockColor===undefined?{}:{rockColor:layout.rockColor}),...(layout.background===undefined?{}:{background:layout.background}),...(layout.backgroundImage===undefined?{}:{backgroundImage:layout.backgroundImage}),...(layout.backgroundImageName===undefined?{}:{backgroundImageName:layout.backgroundImageName}),...(layout.substrate===undefined?{}:{substrate:layout.substrate}),...(layout.lighting===undefined?{}:{lighting:layout.lighting}),...(baseMoves===undefined?{}:{baseMoves:baseMoves.map(m=>({key:m.key,x:m.x,z:m.z,...(m.lift===undefined?{}:{lift:m.lift}),...(m.angle===undefined?{}:{angle:m.angle})}))}),...(layout.baseSeed===undefined?{}:{baseSeed:layout.baseSeed}),items:layout.items.map(item=>{
         if(!item||!integer(item.id,1)||ids.has(item.id)||!decorCatalog.some(d=>d.id===item.type)||mode==='career'&&!owned.includes(item.type))throw Error('Decorazione non disponibile: acquistala nel negozio.');
         ids.add(item.id);
         if(item.lift!==undefined&&(!Number.isFinite(item.lift)||Math.abs(item.lift)>1.2))throw Error('Altezza della decorazione non valida.');
@@ -106,13 +112,14 @@ window.BettaStore = (() => {
       ids.add(source.id);
       if (!['F', 'M'].includes(source.sex)) throw Error('Sesso del pesce non valido.');
       const f = {};
-      for (const key of ['id','name','sex','age','gen','parents','seed','phase','species','ancestry','genes','form','styledCoat']) {
+      for (const key of ['id','name','sex','age','gen','parents','seed','phase','species','ancestry','genes','form','styledCoat','favorite','protected']) {
         if (source[key] !== undefined) f[key] = clone(source[key]);
       }
       if (typeof f.name !== 'string' || !f.name.trim() || f.name.length > 120) throw Error('Nome del pesce non valido.');
       for (const key of ['age','gen','seed']) if (!integer(f[key])) throw Error('Età, generazione o seed non validi.');
       f.phase ??= 0;
       if (!Number.isFinite(f.phase)) throw Error('Fase della livrea non valida.');
+      for(const key of ['favorite','protected'])if(f[key]!==undefined&&typeof f[key]!=='boolean')throw Error('Preferiti e protezione non validi.');
       if(f.styledCoat!==undefined&&typeof f.styledCoat!=='boolean')throw Error('Livrea creativa non valida.');
       if (f.parents != null && (!Array.isArray(f.parents) || f.parents.length !== 2 || !f.parents.every(p => integer(p, 1) && p !== f.id))) throw Error('Genealogia non valida.');
       f.parents ??= null;
@@ -155,7 +162,7 @@ window.BettaStore = (() => {
     if(input.nextFishId!==undefined&&(!integer(input.nextFishId,1)))throw Error('Contatore esemplari non valido.');
     const migrated={
       mode,collection:isDiscus?'discus':'betta',...(career?{career}:{}),nextFishId:Math.max(input.nextFishId??minimumNext,minimumNext),
-      schemaVersion: VERSION, fish,fishArchive,tankNames:tankNames(input.tankNames),
+      schemaVersion: VERSION, fish,fishArchive,selectionProjects:readProjects(input.selectionProjects),tankNames:tankNames(input.tankNames),
       decorOwned:readDecorOwned(input.decorOwned),tankDecor:readTankDecor(input.tankDecor,mode,readDecorOwned(input.decorOwned)),
       diary:readDiary(input.diary),photos:readPhotos(input.photos),tutorial:readTutorial(input.tutorial),
       selected: validSelection(input.selected) ?? fish[0].id,
@@ -167,6 +174,14 @@ window.BettaStore = (() => {
     migrated.tankAssignments=assignTanks({...migrated,tankAssignments:input.tankAssignments},true);
     if(career)delete career.unlockedTanks;
     return migrated;
+  }
+  function readProjects(value=[]){
+    if(!Array.isArray(value)||value.length>24)throw Error('Massimo 24 progetti di selezione.');
+    const ids=new Set();
+    return value.map(p=>{
+      if(!p||!integer(p.id,1)||ids.has(p.id)||typeof p.name!=='string'||!p.name.trim()||p.name.length>80||!window.BettaTypes.colors.some(c=>c.id===p.color)||!['all',...window.BettaTypes.traitChoices.map(t=>t.id)].includes(p.trait)||!integer(p.createdMonth,1)||!Array.isArray(p.achieved)||p.achieved.length>3000||p.achieved.some(id=>!integer(id,1)))throw Error('Progetto di selezione non valido.');
+      ids.add(p.id);return {id:p.id,name:p.name.trim(),color:p.color,trait:p.trait,createdMonth:p.createdMonth,achieved:[...new Set(p.achieved)]};
+    });
   }
   function readDiary(value=[]){
     if(!Array.isArray(value)||value.length>500)throw Error('Diario non valido.');
@@ -293,11 +308,22 @@ window.BettaStore = (() => {
       notice = 'Il salvataggio non è leggibile: l’originale è stato conservato. Questa vasca è temporanea. Puoi scaricare l’originale, importare un backup o ricominciare.';
     }
     function emit() { for (const listener of listeners) listener(); }
-    function commit(next,trackEvents=true) { next.tankAssignments=assignTanks(next);if(trackEvents&&next!==state)track(state,next);state = next; persist(); emit(); }
+    function commit(next,trackEvents=true) {
+      next.selectionProjects??=[];
+      for(const p of next.selectionProjects){for(const f of next.fish)if(f.parents&&window.BettaCareer.matches(f).includes(p.color)&&window.BettaTypes.matchesTrait(f,p.trait)&&!p.achieved.includes(f.id))p.achieved.push(f.id);}
+      next.tankAssignments=assignTanks(next);if(trackEvents&&next!==state)track(state,next);state = next; persist(); emit(); }
     function parents() { return [state.fish.find(f=>f.id===state.mother),state.fish.find(f=>f.id===state.father)]; }
     function nextId() { return state.nextFishId??Math.max(0,...state.fish.map(f=>f.id))+1; }
     return {
       getState: () => clone(state),
+      markFish(id,key,value){
+        if(!['favorite','protected'].includes(key)||typeof value!=='boolean')throw Error('Preferenza non valida.');
+        if(!state.fish.some(f=>f.id===id))throw Error('Esemplare non trovato.');
+        if(key==='protected'&&value&&state.career?.listings.some(l=>l.fishId===id))throw Error('Ritira prima il pesce dalla vendita.');
+        commit({...state,fish:state.fish.map(f=>f.id===id?{...f,[key]:value}:f)});
+      },
+      saveProject(data){const projects=state.selectionProjects||[],id=Math.max(0,...projects.map(p=>p.id))+1;const next=clone(state);next.selectionProjects=readProjects([...projects,{id,name:data.name,color:data.color,trait:data.trait,createdMonth:state.month,achieved:[]}]);commit(next);return id;},
+      deleteProject(id){commit({...state,selectionProjects:(state.selectionProjects||[]).filter(p=>p.id!==id)});},
       tutorial(action){if(!['dismiss','resume','observe'].includes(action))throw Error('Guida non valida.');const next=clone(state);next.tutorial=readTutorial(next.tutorial);if(action==='observe')next.tutorial.observed=true;else next.tutorial.dismissed=action==='dismiss';commit(next);},
       savePhoto(data,caption,fishId=null){const next=clone(state),photo={data,caption,fishId,month:state.month};readPhotos([photo]);next.photos=[...(next.photos||[]).slice(-11),photo];record(next,'photo','Fotografia: '+caption,fishId?[fishId]:[]);commit(next);},
       deletePhoto(index){if(!Number.isInteger(index)||index<0||index>=(state.photos||[]).length)throw Error('Fotografia non trovata.');const next=clone(state);next.photos.splice(index,1);commit(next);},
@@ -317,6 +343,7 @@ window.BettaStore = (() => {
       },
       removeMany(ids){
         const unique=[...new Set(ids)];if(!unique.length||unique.some(id=>!state.fish.some(f=>f.id===id)))throw Error('Esemplare non trovato.');
+        if(state.fish.some(f=>unique.includes(f.id)&&f.protected))throw Error('Sblocca prima i riproduttori protetti.');
         if(unique.length>=state.fish.length)throw Error('Conserva almeno un pesce nell’allevamento.');
         const next=clone(state),removed=next.fish.filter(f=>unique.includes(f.id));next.fish=next.fish.filter(f=>!unique.includes(f.id));
         if(unique.includes(next.selected))next.selected=next.fish[0].id;if(unique.includes(next.mother))next.mother=null;if(unique.includes(next.father))next.father=null;
@@ -373,6 +400,7 @@ window.BettaStore = (() => {
       removeFish(id){
         const fish=state.fish.find(f=>f.id===id);
         if(!fish)throw Error('Esemplare non trovato.');
+        if(fish.protected)throw Error('Sblocca prima i riproduttori protetti.');
         if(state.fish.length===1)throw Error('Conserva almeno un pesce nell’allevamento.');
         const next=clone(state),index=next.fish.findIndex(f=>f.id===id);
         next.fish.splice(index,1);
@@ -455,5 +483,5 @@ window.BettaStore = (() => {
       }
     };
   }
-  return {decorCatalog,readTankDecor,resetSavedGames,capacityForTank,housing,tankUnlocked,tankNumber,VERSION,KEY,migrate,founders,relationship,parentStatus,selectionStatus,pairingStatus,breedingStatus,create};
+  return {backgrounds,decorCatalog,readTankDecor,resetSavedGames,capacityForTank,housing,tankUnlocked,tankNumber,VERSION,KEY,migrate,founders,relationship,parentStatus,selectionStatus,pairingStatus,breedingStatus,create};
 })();

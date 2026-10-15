@@ -317,7 +317,7 @@ function renderRoster() {
     const group=rosterView.filter;
     const filter=group==='all'||(group==='young'&&fish.age<2)||(group==='adult'&&fish.age>=2)
       ||(['F','M'].includes(group)&&fish.sex===group)
-      ||(group==='parents'&&[state.mother,state.father].includes(fish.id));
+      ||(group==='parents'&&[state.mother,state.father].includes(fish.id))||(group==='favorite'&&fish.favorite)||(group==='protected'&&fish.protected);
     const age=rosterView.age==='all'||(rosterView.age==='fry'&&fish.age<1)||(rosterView.age==='young'&&fish.age>=1&&fish.age<2)||(rosterView.age==='growing'&&fish.age>=2&&fish.age<4)||(rosterView.age==='adult'&&fish.age>=4);
     return filter&&age&&BettaTypes.matchesTrait(fish,rosterView.trait)&&BettaTypes.matchesCarrier(fish,rosterView.carrier)&&(rosterView.coat==='all'||coatLabel(fish)===rosterView.coat)&&(!query||(fishLabel(fish)+' '+BettaTypes.name(fish)+' #'+fish.id).toLocaleLowerCase('it').includes(query));
   };
@@ -332,7 +332,7 @@ function renderRoster() {
     if(!item) { item=createCard(fish); rosterCards.set(fish.id,item); }
     item.card.hidden=!matches(fish);
     item.card.classList.toggle('active',fish.id===state.selected);item.card.classList.toggle('multi-selected',multiSelection.has(fish.id));item.card.setAttribute('aria-selected',String(multiSelection.has(fish.id)));
-    item.name.textContent=(fish.sex==='F'?'♀ ':'♂ ')+fishLabel(fish);
+    item.name.textContent=(fish.favorite?'★ ':'')+(fish.protected?'🔒 ':'')+(fish.sex==='F'?'♀ ':'♂ ')+fishLabel(fish);
     item.detail.textContent=BettaTypes.development(fish).stage+' · '+fish.age+' mesi · '+BettaTypes.name(fish);
     item.coat.textContent=coatLabel(fish);
     item.detail.className=fish.age<2?'juvenile':'';
@@ -415,10 +415,15 @@ function advanceMonth(){act(()=>{
 });}
 $('#advance').onclick=advanceMonth;
 $('#room-advance').onclick=advanceMonth;
+const restartSection=document.createElement('section');restartSection.className='settings-restart';
+const restartHeading=document.createElement('h3');restartHeading.textContent='Salvataggio attuale';
+const restartNote=document.createElement('p');restartNote.textContent='Ricomincia solo la modalità attiva. I progressi di questa partita saranno sostituiti.';
+const restartButton=$('#reset');restartButton.className='secondary';restartButton.textContent=state.mode==='career'?'Ricomincia carriera':'Ricomincia creativa';restartButton.removeAttribute('title');restartButton.removeAttribute('aria-label');
+restartSection.append(restartHeading,restartNote,restartButton);const settingsPanel=$('#audio-panel');settingsPanel.insertBefore(restartSection,settingsPanel.lastElementChild);
 $('#reset').onclick=()=>{
   const mode=state.mode==='career'?'carriera':'creativa';
   const question=window.FishI18n?.language==='en'?'Restart '+(state.mode==='career'?'career':'creative')+' mode? Only this save will be replaced.':'Ricominciare la modalità '+mode+'? Solo questo salvataggio sarà sostituito.';
-  if(confirm(question)) act(()=>{multiSelection.clear();rosterSelectionAnchor=null;clearBrood();$('#birth-banner').hidden=true;appStore.reset();});
+  if(confirm(question)) act(()=>{multiSelection.clear();rosterSelectionAnchor=null;clearBrood();$('#birth-banner').hidden=true;appStore.reset();settingsPanel.close();});
 };
 $('#open-notes').onclick=()=>$('#notes').showModal();
 $('#export-tank').onclick=()=>act(()=>download(appStore.export(),'betta-'+state.mode+'.json','application/json'));

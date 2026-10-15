@@ -96,7 +96,7 @@ window.BettaCareer=(()=>{
   }
   state.log=state.log.slice(0,5);
  }
- function removable(state,fish){return fish&&state.fish.length>2&&state.fish.some(f=>f.id!==fish.id&&f.sex===fish.sex&&f.age>=2&&!state.career.listings.some(l=>l.fishId===f.id));}
+ function removable(state,fish){return fish&&!fish.protected&&state.fish.length>2&&state.fish.some(f=>f.id!==fish.id&&f.sex===fish.sex&&f.age>=2&&!state.career.listings.some(l=>l.fishId===f.id));}
  function remove(state,fish,reason){
   state.career.archive.push({...fish,month:state.month,reason});state.career.archive=state.career.archive.slice(-3000);
   state.fish=state.fish.filter(f=>f.id!==fish.id);state.career.listings=state.career.listings.filter(l=>l.fishId!==fish.id);
@@ -108,6 +108,7 @@ window.BettaCareer=(()=>{
   const c=state.career,fish=state.fish.find(f=>f.id===Number(data.fishId));
   function spend(n){if(c.cash<n)throw Error('Monete insufficienti.');c.cash-=n;}
   if(['list','deliver'].includes(action)&&state.tankAssignments?.[fish?.id]==='community')throw Error('Sposta il pesce dall’acquario zero prima di venderlo.');
+  if(['list','deliver'].includes(action)&&fish?.protected)throw Error('Sblocca prima i riproduttori protetti.');
   if(action==='list'){
    if(!fish||fish.age<4)throw Error('Puoi vendere esemplari adulti da 4 mesi.');
    if(!removable(state,fish))throw Error('Conserva almeno un riproduttore per sesso fuori dal negozio.');
@@ -155,7 +156,7 @@ window.BettaCareer=(()=>{
    const c=state.career;
    const number=c.nextCustomer++,profile=regulars[(number-1)%regulars.length];c.regulars??={};const relationship=c.regulars[profile.id]??={visits:0,purchases:0};relationship.visits++;
    const wanted=rng()<.35?'any':profile.taste==='any'?Object.keys(c.discoveries)[Math.floor(rng()*Object.keys(c.discoveries).length)]:profile.taste,budget=80+Math.floor(rng()*360)+c.reputation*3+Math.min(100,relationship.purchases*10);
-   const candidates=c.listings.map(l=>({l,f:state.fish.find(f=>f.id===l.fishId)})).filter(x=>x.f&&(wanted==='any'||matches(x.f).includes(wanted)));
+   const candidates=c.listings.map(l=>({l,f:state.fish.find(f=>f.id===l.fishId)})).filter(x=>x.f&&!x.f.protected&&(wanted==='any'||matches(x.f).includes(wanted)));
    const visit={id:number,customerId:profile.id,name:profile.name,returning:relationship.visits>1,month:state.month,wanted,budget,message:'Nessun pesce corrisponde ai miei gusti.',bought:false};
    if(candidates.length){
     const {l,f}=candidates[Math.floor(rng()*candidates.length)],max=value(f,state.month);visit.fishId=f.id;visit.price=l.price;visit.max=max;

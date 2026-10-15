@@ -1,6 +1,21 @@
 'use strict';
 window.FishI18n=(()=>{
   const translations=new Map(Object.entries({
+    'Sfondo acquario':'Aquarium background','Blu notte':'Midnight blue','Verde acqua':'Teal','Verde':'Green','Grigio':'Grey','Bianco':'White',
+    'Fiume naturale':'Natural river','Vegetazione acquatica':'Aquatic plants','Parete rocciosa':'Rock wall','Immagine personale':'Custom image',
+    'Carica immagine dal computer':'Upload image from computer','Rimuovi immagine':'Remove image',
+    'L’immagine viene adattata alla vasca e inclusa nei salvataggi.':'The image is fitted to the aquarium and included in saved games.',
+    'Scegli un’immagine PNG, JPG o WebP fino a 15 MB.':'Choose a PNG, JPG or WebP image up to 15 MB.',
+    'Immagine troppo complessa: scegli un file più semplice.':'Image too complex: choose a simpler file.',
+    'Sfondo non valido.':'Invalid background.','Immagine di sfondo non valida.':'Invalid background image.','Carica un’immagine per lo sfondo.':'Upload a background image.','Nome immagine non valido.':'Invalid image name.',
+    'Impostazioni e suoni':'Settings and sound','Salvataggio attuale':'Current save','Ricomincia carriera':'Restart career','Ricomincia creativa':'Restart creative',
+    'Ricomincia solo la modalità attiva. I progressi di questa partita saranno sostituiti.':'Restart only the active mode. This game’s progress will be replaced.',
+    'Alien blu':'Alien Blue',
+    'Progetti di selezione':'Breeding projects','Confronta partner':'Compare partners','Preferiti':'Favorites','Protetti':'Protected','Progetti':'Projects','Partner':'Partners',
+    'Elimina progetto':'Delete project','Scegli questa coppia':'Choose this pair','Mostra altri partner':'Show more partners',
+    'Sblocca prima i riproduttori protetti.':'Unlock protected breeders first.','Ritira prima il pesce dalla vendita.':'Withdraw the fish from sale first.',
+    'Massimo 24 progetti di selezione.':'A maximum of 24 breeding projects is allowed.','Progetto di selezione non valido.':'Invalid breeding project.',
+    'Preferiti e protezione non validi.':'Invalid favorites or protection.','Preferenza non valida.':'Invalid preference.',
     'Avannotti':'Fry',
     'Nessun nonno registrato':'No grandparents recorded',
     'Tratto visibile':'Visible trait','Portatori e alleli':'Carriers and alleles','Tutti':'All','Femmine':'Females','Maschi':'Males','Età':'Age','Pinne corte':'Short fins','Pinne lunghe':'Long fins','Halfmoon (180° o più)':'Halfmoon (180° or more)',
@@ -80,7 +95,7 @@ window.FishI18n=(()=>{
     'Evidenze e limiti del modello.':'Evidence and limits of the model.',
     'Colori verificati: copertura e limiti':'Verified colors: coverage and limits',
     'Famiglia':'Family','Nel gioco':'In game','Sviluppo:':'Development:','Ricerca:':'Research:',
-    'Colori:':'Colors:','Incroci:':'Crosses:','Crediti modelli 3D':'3D model credits',
+    'Colori:':'Colors:','Incroci:':'Crosses:',
     'Sposta pesce':'Move fish','Destinazione':'Destination','Sposta qui':'Move here','Annulla':'Cancel',
     'Sposta in un acquario':'Move to a tank','Rinomina esemplare':'Rename fish','Salva nome':'Save name','Modifica nome':'Edit name',
     'Elimina pesce':'Delete fish','Pesce eliminato.':'Fish deleted.','Conserva almeno un pesce nell’allevamento.':'Keep at least one fish in the breeding collection.',
@@ -575,6 +590,7 @@ window.FishI18n=(()=>{
     'Stato riproduttivo':'Breeding status','Pronto per l’incrocio':'Ready to breed',
     'Confronta gli alleli':'Compare alleles','Genotipo delle pinne':'Fin genotype',
     'Genotipo del colore':'Colour genotype','Nessuno':'None',
+    'Sabbia bianca':'White sand','Sabbia dorata':'Golden sand','Sabbia rossa':'Red sand','Fondo fertile scuro':'Dark aquasoil','Ghiaia di fiume':'River gravel','Ghiaia basaltica':'Basalt gravel','Colore rocce':'Rock color','Naturale':'Natural','Ardesia blu grigia':'Blue grey slate','Basalto scuro':'Dark basalt','Calcare beige':'Beige limestone','Quarzo bianco':'White quartz','Arenaria dorata':'Golden sandstone','Roccia rossa':'Red rock','Granito grigio':'Grey granite',
     'Substrato':'Substrate','Sabbia chiara':'Light sand','Sabbia scura':'Dark sand','Ghiaia':'Gravel',
     'Illuminazione':'Lighting','Luce neutra':'Neutral light','Luce calda':'Warm light','Luce fitostimolante':'Plant grow light',
     'Substrato non valido.':'Invalid substrate.','Illuminazione non valida.':'Invalid lighting.',
@@ -590,6 +606,12 @@ window.FishI18n=(()=>{
     'Apertura della stanza…':'Opening the room…'
   }))translations.set(it,en);
   const patterns=[
+    [/^Come ottenere /,'How to breed '],
+    [/^Coppia consigliata: /,'Recommended pair: '],
+    [/^Alternativa: /,'Alternative: '],
+    [/\bAlien blu\b/g,'Alien Blue'],
+    [/\bdi almeno uno in una nidiata di quattro\b/g,'chance of at least one in a brood of four'],
+    [/\bcolorazione di base\b/g,'base coloration'],
     [/\b(\d+) pesci sono ora pronti per la riproduzione\b/g,'$1 fish are now ready to breed'],
     [/\b(\d+) pesci stanno ancora crescendo \(sviluppo completo a 4 mesi\)/g,'$1 fish are still growing (fully grown at 4 months)'],
     [/\bTutti i pesci hanno completato la crescita\b/g,'All fish are fully grown'],
