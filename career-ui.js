@@ -16,7 +16,7 @@
  const catalogQueries={market:'',album:''};let albumStatus='all';
  const tabScroll=new Map();dialog.addEventListener('close',()=>tabScroll.set(tab,dialog.scrollTop));
  function changeTab(next){tabScroll.set(tab,dialog.scrollTop);tab=next;draw();dialog.scrollTop=tabScroll.get(next)||0;}
- function routeParents(s){if(!marketRoute||marketRoute.goal!==goal)return [];return ['F','M'].map((sex,i)=>{const offer=i?marketRoute.pair.father:marketRoute.pair.mother,genes=BettaTypes.specimen('halfmoon',offer.colorId,sex).genes;return s.fish.find(f=>f.sex===sex&&BettaTypes.colorLoci.every(k=>f.genes[k]===genes[k])&&!s.career.listings.some(l=>l.fishId===f.id));});}
+ function routeParents(s){if(s.mode!=='career'||!s.career||!marketRoute||marketRoute.goal!==goal)return [];return ['F','M'].map((sex,i)=>{const offer=i?marketRoute.pair.father:marketRoute.pair.mother,genes=BettaTypes.specimen('halfmoon',offer.colorId,sex).genes;return s.fish.find(f=>f.sex===sex&&BettaTypes.colorLoci.every(k=>f.genes[k]===genes[k])&&!s.career.listings.some(l=>l.fishId===f.id));});}
  function selectPair(mother,father){
   const status=BettaStore.pairingStatus(appStore.getState(),mother,father);if(!status.allowed){notice.textContent=status.reason;return;}
   guidePair={mother:mother.id,father:father.id};dialog.close();setRosterFilter('parents');document.getElementById('room-lab').click();appStore.choosePair(mother.id,father.id);document.querySelector('.breeding').scrollIntoView({block:'start',behavior:'smooth'});
