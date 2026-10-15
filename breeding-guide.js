@@ -25,14 +25,21 @@ window.BettaBreedingGuide=(()=>{
   return {id,pairs:pairs.slice(0,3),missing,donors,steps:steps.slice(0,2),limited:groups.F.size>128||groups.M.size>128};
  }
  function marketPair(state,id){
-  const offers=BettaCareer.offers(state).filter(o=>o.colorId!==id),goal=target(id),pairs=[];
+  const offers=BettaCareer.offers(state).filter(o=>o.colorId!==id),goal=target(id),masked=[...maskLoci].some(k=>goal.genes[k]===k+k),pairs=[];
   for(let i=0;i<offers.length;i++)for(let j=i+1;j<offers.length;j++){
    const a=offers[i],b=offers[j],mother=BettaTypes.specimen('halfmoon',a.colorId,'F'),father=BettaTypes.specimen('halfmoon',b.colorId,'M');
    if(probability(mother,father,id)>0)continue;
    const child={...mother,genes:{...mother.genes}};let intermediate=1;
    for(const k of BettaTypes.colorLoci){
     const choices=outcomes(mother.genes[k],father.genes[k]),wanted=goal.genes[k];
-    const score=g=>[...g].reduce((n,allele)=>n+(wanted.includes(allele)?0:1),0);
+    // Match the album phenotype, not mere membership in the target allele pair.
+    // Bb needs both alleles; unmasked coats cannot use a double-dose masking
+    // factor. Selecting BB or CC here made valid two-generation paths disappear.
+    const score=g=>{
+     if(k==='B')return masked?0:g===wanted?0:[...wanted].every(a=>g.includes(a))?1:4;
+     const n=[...g].filter(a=>a===k).length;
+     return wanted.includes(k)?n===0?4:!masked&&maskLoci.has(k)&&n===2?4:n===1?.1:0:n===2?4:n===1?.3:0;
+    };
     choices.sort((a,b)=>score(a)-score(b)||a.localeCompare(b));child.genes[k]=choices[0];intermediate*=choices.filter(g=>g===choices[0]).length/4;
    }
    const second=probability(child,child,id);if(!second)continue;
