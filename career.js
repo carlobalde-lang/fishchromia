@@ -36,7 +36,8 @@ window.BettaCareer=(()=>{
  function value(fish,month=1){return Math.round((38+rarity(fish)*17+Math.min(fish.gen,6)*5+(fish.form.E==='ee'?15:0))*(matches(fish).includes(demand(month))?1.25:1));}
  function chance(price,max){return price>max?.1:price<=max*.7?.9:.9-(price/max-.7)/.3*.5;}
  function offers(state){
-  const owned=new Set(state.fish.map(signature)),seen=new Set();
+  const sexes=new Map();for(const fish of state.fish){const key=signature(fish);if(!sexes.has(key))sexes.set(key,new Set());sexes.get(key).add(fish.sex);}
+  const owned=new Set([...sexes].filter(([,sex])=>sex.size===2).map(([key])=>key)),seen=new Set();
   const coats=colors().filter(color=>{
    const key=signature(BettaTypes.specimen('halfmoon',color.id,'M'));
    if(owned.has(key)||seen.has(key))return false;seen.add(key);return true;

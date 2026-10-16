@@ -88,8 +88,10 @@ chooseMode().then(async mode=>{window.bettaMode=mode;window.fishCollection=await
     await loadScript('./three-scene.js');
     await loadScript('./gameplay-ui.js');
     await loadScript('./passport.js');
+    await loadScript('./personal-album.js');
     await loadScript('./parent-comparison.js');
     await loadScript('./decor-ui.js');
+    await loadScript('./interface-ui.js');
   } catch (error) { window.bettaLoading.fail(error.message); }
 }));});
 

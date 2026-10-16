@@ -65,20 +65,35 @@ function openMoveFish(id){
 moveDialog.querySelector('form').onsubmit=event=>{event.preventDefault();try{const key=$('#fish-move-target').value;if(key==='shop'){const current=appStore.getState(),fish=current.fish.find(f=>f.id===movingId);appStore.careerMany('list',movingIds);}else appStore.moveMany(movingIds,key);clearBrood();render();moveDialog.close();message(key==='shop'?'Pesce esposto in negozio al prezzo standard.':'Pesce spostato nell’acquario #'+BettaStore.tankNumber(key)+'.');}catch(e){moveDialog.querySelector('.move-error').textContent=e.message;}};
 const moveSelected=document.createElement('button');moveSelected.id='move-selected-fish';moveSelected.className='secondary';moveSelected.textContent='Sposta in un acquario';moveSelected.onclick=()=>openMoveFish(multiSelection.size>1?[...multiSelection]:selected().id);$('#fish-actions').prepend(moveSelected);
 const renameDialog=document.createElement('dialog');renameDialog.className='shelf-label-editor';renameDialog.innerHTML='<form><h2>Rinomina esemplare</h2><label for="fish-rename-input">Nome</label><input id="fish-rename-input" maxlength="120" required><p class="rename-error" role="status"></p><button type="submit">Salva nome</button><button type="button" class="rename-cancel">Annulla</button></form>';document.body.append(renameDialog);
+let renameErrorSource='';
+const renameInput=renameDialog.querySelector('input'),renameForm=renameDialog.querySelector('form');
+renameForm.noValidate=true;
+function translateRenameDialog(){
+ const tr=text=>window.FishI18n?.translate(text)||text;
+ renameDialog.querySelector('h2').textContent=tr('Rinomina esemplare');
+ renameDialog.querySelector('label').textContent=tr('Nome');
+ renameDialog.querySelector('button[type="submit"]').textContent=tr('Salva nome');
+ renameDialog.querySelector('.rename-cancel').textContent=tr('Annulla');
+ const close=renameDialog.querySelector(':scope > header button');if(close)close.textContent=tr('Chiudi');
+ renameDialog.querySelector('.rename-error').textContent=tr(renameErrorSource);
+}
+renameInput.setAttribute('aria-describedby','fish-rename-error');renameDialog.querySelector('.rename-error').id='fish-rename-error';
+renameInput.addEventListener('input',()=>{renameErrorSource='';renameInput.removeAttribute('aria-invalid');renameDialog.querySelector('.rename-error').textContent='';});
+document.addEventListener('fish-language-change',translateRenameDialog);
 const deleteSelected=document.createElement('button');deleteSelected.id='delete-selected-fish';deleteSelected.type='button';deleteSelected.className='secondary';deleteSelected.textContent='Elimina pesce';$('#fish-more-menu').append(deleteSelected);
 deleteSelected.onclick=()=>{
   const fish=selected(),english=window.FishI18n?.language==='en';
   if(!confirm(english?'Delete '+FishI18n.translate(fish.name)+' (#'+fish.id+') from the breeding collection? This cannot be undone.':'Eliminare '+fish.name+' (#'+fish.id+') dall’allevamento? Questa azione non può essere annullata.'))return;
   act(()=>{appStore.removeFish(fish.id);message(english?'Fish deleted.':'Pesce eliminato.');});
 };
-const renameButton=document.createElement('button');renameButton.type='button';renameButton.className='secondary';renameButton.id='rename-selected-fish';renameButton.textContent='Modifica nome';renameButton.onclick=()=>{renameDialog.querySelector('input').value=selected().name;renameDialog.querySelector('.rename-error').textContent='';renameDialog.showModal();renameDialog.querySelector('input').select();};$('#fish-more-menu').insertBefore(renameButton,deleteSelected);
+const renameButton=document.createElement('button');renameButton.type='button';renameButton.className='secondary';renameButton.id='rename-selected-fish';renameButton.textContent='Modifica nome';renameButton.onclick=()=>{renameInput.value=selected().name;renameErrorSource='';renameInput.removeAttribute('aria-invalid');translateRenameDialog();renameDialog.showModal();renameInput.select();};$('#fish-more-menu').insertBefore(renameButton,deleteSelected);
 const moreActions=$('#fish-more-actions');
 moreActions.addEventListener('click',event=>{if(event.target.closest('button'))moreActions.open=false;});
 document.addEventListener('click',event=>{if(!moreActions.contains(event.target))moreActions.open=false;});
 moreActions.addEventListener('keydown',event=>{if(event.key==='Escape'&&moreActions.open){moreActions.open=false;moreActions.querySelector('summary').focus();event.stopPropagation();}});
 let actionFishId=state.selected;
 renameDialog.querySelector('.rename-cancel').onclick=()=>renameDialog.close();
-renameDialog.querySelector('form').onsubmit=event=>{event.preventDefault();try{appStore.renameFish(selected().id,renameDialog.querySelector('input').value);renameDialog.close();}catch(error){renameDialog.querySelector('.rename-error').textContent=error.message;}};
+renameForm.onsubmit=event=>{event.preventDefault();try{appStore.renameFish(selected().id,renameInput.value);renameDialog.close();}catch(error){renameErrorSource=error.message;renameInput.setAttribute('aria-invalid','true');translateRenameDialog();renameInput.focus();}};
 const stage=$('#observation');stage.prepend(stage.querySelector('.fish-info'));stage.append($('#collection-panel'));
 $('#open-genome').onclick=()=>$('#genome-dialog').showModal();
 const heroFish=$('.hero-fish');
@@ -210,7 +225,7 @@ function renderParents() {
       detail.textContent=BettaTypes.name(fish)+' · #'+fish.id;
     }else{
       const choose=document.createElement('button');choose.className='pick';choose.textContent='Scegli dalla vasca';
-      choose.onclick=()=>{setRosterFilter(selector==='#mother-slot'?'F':'M');$('#collection-panel').scrollIntoView({block:'start'});$('#fish-filter').focus();};
+      choose.onclick=()=>{window.FishInterface?.showCollection();setRosterFilter(selector==='#mother-slot'?'F':'M');$('#collection-panel').scrollIntoView({block:'start'});$('#fish-filter').focus();};
       slot.append(choose);
     }
     if(fish)slot.querySelector('.parent-observe').append(detail);else slot.append(detail);
@@ -376,7 +391,7 @@ window.bettaParents=parents;
 window.bettaParams=genotypeParams;
 window.bettaSelected=selected;
 function clearBrood(){rosterView.brood=null;rosterView.broodName='';}
-function showBrood(ids,name){
+function showBrood(ids,name){window.FishInterface?.showCollection();
   rosterView.brood=ids;rosterView.broodName=name;
   setRosterFilter('all',true);appStore.select(ids[0]);
 }

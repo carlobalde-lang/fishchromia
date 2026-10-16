@@ -4234,8 +4234,8 @@ void main() {
   vec3 ink=vec3(.0012,.0018,.0035),ivory=vec3(.78,.73,.69);
   vec3 scarlet=vec3(.48,.0028,.005),amber=vec3(.78,.21,.004);
   vec3 steel=vec3(.10,.18,.25),royal=vec3(.018,.018,.44),turquoise=vec3(.006,.25,.32);
-  vec3 blue=mix(mix(steel,royal,step(.5,uBlue)),turquoise,step(1.5,uBlue));
-  vec3 shine=mix(mix(vec3(.33,.47,.55),vec3(.075,.38,.68),step(.5,uBlue)),vec3(.018,.54,.43),step(1.5,uBlue));
+  vec3 blue=mix(mix(steel,royal,clamp(uBlue,0.,1.)),turquoise,clamp(uBlue-1.,0.,1.));
+  vec3 shine=mix(mix(vec3(.33,.47,.55),vec3(.075,.38,.68),clamp(uBlue,0.,1.)),vec3(.018,.54,.43),clamp(uBlue-1.,0.,1.));
   shine=mix(shine,vec3(.018,.45,.29),uGreen);
   vec3 copper=vec3(.51,.43,.27),gold=vec3(.76,.43,.055);
   vec3 q=fishPosition*vec3(1.,2.4,1.)*uFreq*mix(1.5,.58,uMarble)+vec3(uSeed*.0031,uSeed*.0017,uSeed*.0023);
@@ -4275,8 +4275,8 @@ void main() {
   float belly=1.-smoothstep(-.82,-.12,height);
   float back=smoothstep(.28,.92,height);
   float upperHead=smoothstep(.53,.88,fishUV.x)*smoothstep(-.08,.65,height);
-  vec3 flankBlue=mix(mix(vec3(.12,.22,.29),vec3(.035,.045,.49),step(.5,uBlue)),vec3(.055,.40,.56),step(1.5,uBlue));
-  vec3 crownBlue=mix(mix(vec3(.020,.045,.065),vec3(.016,.008,.16),step(.5,uBlue)),vec3(.008,.045,.29),step(1.5,uBlue));
+  vec3 flankBlue=mix(mix(vec3(.12,.22,.29),vec3(.035,.045,.49),clamp(uBlue,0.,1.)),vec3(.055,.40,.56),clamp(uBlue-1.,0.,1.));
+  vec3 crownBlue=mix(mix(vec3(.020,.045,.065),vec3(.016,.008,.16),clamp(uBlue,0.,1.)),vec3(.008,.045,.29),clamp(uBlue-1.,0.,1.));
   vec3 blueBody=mix(flankBlue,crownBlue,max(back*.80,upperHead));
   blueBody=mix(blueBody,vec3(.0015,.005,.012),belly*.99);
   vec3 blueFin=mix(crownBlue,flankBlue,smoothstep(.04,.38,fishUV.y));
@@ -4632,7 +4632,7 @@ float fishNoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mi
         float head=smoothstep(.77,.94,fishUV.x);
         float scaleVariation=fishNoise3(fishPosition*vec3(18.,23.,18.)+uSeed*.001);
         pigment*=.77+.08*grain;
-        pigment=mix(pigment,pigment*mix(vec3(.77,.96,1.10),vec3(.80,1.08,.95),step(1.5,uBlue)),scaleVariation*.25*(1.-head)*uIridescence);
+        pigment=mix(pigment,pigment*mix(vec3(.77,.96,1.10),vec3(.80,1.08,.95),clamp(uBlue-1.,0.,1.)),scaleVariation*.25*(1.-head)*uIridescence);
         pigment*=1.-.32*head;
         pigment*=1.-.48*step(.5,fishDetail)*(1.-step(1.5,fishDetail));
         ${c?`float lip=(1.-smoothstep(.0,.23,fishScale.x))*sin(fishScale.y*3.141593);

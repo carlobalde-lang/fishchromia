@@ -48,5 +48,35 @@ window.BettaBreedingGuide=(()=>{
   pairs.sort((a,b)=>b.probability-a.probability||b.intermediateProbability-a.intermediateProbability||a.price-b.price);
   return pairs[0]||null;
  }
- return {probability,plan,marketPair};
+ function progress(state,id,route,directPlan){
+  const recipe=route?.pair||route,records=new Map([...(state.career?.archive||[]),...(state.fishArchive||[]),...state.fish].filter(f=>f.genes).map(f=>[f.id,f]));
+  const listed=new Set(state.career?.listings.map(l=>l.fishId)||[]),same=(a,b)=>BettaTypes.colorLoci.every(k=>a[k]===b[k]);
+  const sources=['mother','father'].map((key,i)=>{
+   if(!recipe?.[key]?.colorId)return [];
+   const genes=target(recipe[key].colorId).genes,sex=i?'M':'F';
+   return [...records.values()].filter(f=>f.sex===sex&&same(f.genes,genes)).map(f=>f.id).concat(Array.isArray(route?.parentIds?.[key])?route.parentIds[key].filter(Number.isSafeInteger):[]);
+  });
+  const lineage=new Set();let changed=true;
+  while(changed){changed=false;for(const f of records.values())if(f.parents&&!lineage.has(f.id)&&((sources[0].includes(f.parents[0])&&sources[1].includes(f.parents[1])||sources[0].includes(f.parents[1])&&sources[1].includes(f.parents[0]))||f.parents.some(p=>lineage.has(p)))){lineage.add(f.id);changed=true;}}
+  const ideal=recipe?.intermediateGenes&&BettaTypes.colorLoci.every(k=>typeof recipe.intermediateGenes[k]==='string'&&new RegExp('^['+k+k.toLowerCase()+']{2}$').test(recipe.intermediateGenes[k]))?{...target(id),genes:recipe.intermediateGenes}:null;
+  const keep=state.fish.filter(f=>lineage.has(f.id)&&BettaSpecies.ornamental(f)).map(f=>{
+   const chance=Math.max(probability(f,f,id),ideal?probability(f,ideal,id):0);
+   return {fishId:f.id,sex:f.sex,age:f.age,probability:chance,exact:!!ideal&&same(f.genes,ideal.genes),carrier:!BettaCareer.matches(f).includes(id),loci:BettaTypes.colorLoci.filter(k=>f.genes[k][0]!==f.genes[k][1]&&target(id).genes[k].includes(k)),listed:listed.has(f.id),protected:!!f.protected};
+  }).filter(f=>f.probability>0).sort((a,b)=>Number(b.exact)-Number(a.exact)||b.probability-a.probability||b.age-a.age||a.fishId-b.fishId);
+  const direct=directPlan||plan(state,id,false),missingSex=['F','M'].filter(sex=>!keep.some(f=>f.sex===sex&&!f.listed));
+  const alternatives=[];
+  for(const child of keep.slice(0,24)){
+   const f=records.get(child.fishId),sex=f.sex==='F'?'M':'F';
+   for(const partner of state.fish.filter(p=>p.sex===sex&&BettaSpecies.ornamental(p))){const p=probability(f,partner,id);if(p){const status=BettaStore.pairingStatus(state,f,partner);alternatives.push({fishId:f.id,partnerId:partner.id,sex,probability:p,ready:status.allowed,reason:status.reason||'',withdraw:[f.id,partner.id].filter(id=>listed.has(id))});}}
+   for(const offer of BettaCareer.offers(state)){const partner=BettaCareer.offerSpecimen(offer,sex),p=probability(f,partner,id);if(p)alternatives.push({fishId:f.id,offer,sex,probability:p,ready:false,withdraw:listed.has(f.id)?[f.id]:[]});}
+  }
+  alternatives.sort((a,b)=>Number(b.ready)-Number(a.ready)||Number(!!a.offer)-Number(!!b.offer)||b.probability-a.probability||(a.offer?.price||0)-(b.offer?.price||0));
+  const unique=[...new Map(alternatives.map(a=>[[a.fishId,a.partnerId||a.offer.id,a.sex].join(':'),a])).values()].slice(0,3);
+  const parents=sources.map((ids,i)=>state.fish.filter(f=>ids.includes(f.id)&&f.sex===(i?'M':'F')).sort((a,b)=>Number(listed.has(a.id))-Number(listed.has(b.id))||b.age-a.age)[0]);
+  const firstReady=parents.every(Boolean)&&BettaStore.pairingStatus(state,...parents).allowed;
+  const complete=!!state.career?.discoveries[id],ready=direct.pairs.find(p=>p.ready);
+  const phase=complete?'complete':ready?'final':keep.length?(keep.some(f=>f.age<2)&&!unique.some(a=>a.ready)?'grow':'select'):firstReady?'first':'sources';
+  return {phase,parents:parents.map(f=>f?.id||null),sourceIds:{mother:[...new Set(sources[0])],father:[...new Set(sources[1])]},descendants:[...lineage],keep,missingSex,alternatives:unique,pair:ready||null};
+ }
+ return {probability,plan,marketPair,progress};
 })();
