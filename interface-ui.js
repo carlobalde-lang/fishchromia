@@ -2,6 +2,15 @@
 (()=>{
  const $=s=>document.querySelector(s),lab=$('#laboratory'),nav=$('.lab-nav'),collection=$('#collection-panel');
  const tr=s=>window.FishI18n?.translate(s)||s;
+ // Keep mobile utilities in the laboratory menu, and restore their original
+ // locations in rooms and on desktop so they remain available everywhere.
+ const mobileUtilities=matchMedia('(max-width:720px)'),utilityMenu=document.querySelector('.lab-shortcut-buttons');
+ const utilities=['fish-language-control','fish-audio-toggle','fish-audio-settings'].map(id=>{
+  const control=document.getElementById(id);if(!control)return null;
+  const marker=document.createComment('Original position: '+id);control.before(marker);return {control,marker};
+ }).filter(Boolean);
+ const placeUtilities=()=>{for(const {control,marker} of utilities){if(mobileUtilities.matches&&!lab.hidden&&utilityMenu)utilityMenu.append(control);else marker.after(control);}};
+ new MutationObserver(placeUtilities).observe(lab,{attributes:true,attributeFilter:['hidden']});mobileUtilities.addEventListener('change',placeUtilities);placeUtilities();
  for(const brand of document.querySelectorAll('.top .brand,.room-header .room-brand')){
   const home=document.createElement('a');home.className='brand-home';home.href='#room';home.setAttribute('aria-label',tr('Torna alla Stanza 1'));
   home.append(...brand.childNodes);brand.append(home);
