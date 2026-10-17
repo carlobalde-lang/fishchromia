@@ -10,6 +10,14 @@ const labels = {V:'Reticolo Alien (sim.)',T:'bianco (sim.)',N:'arancio (sim.)',P
 const rosterCards = new Map();const multiSelection=new Set();let rosterSelectionAnchor=null;
 const rosterView={query:'',filter:'all',coat:'all',sort:'recent',trait:'all',carrier:'all',age:'all',brood:null,broodName:''};
 const selected = () => state.fish.find(f => f.id === state.selected) || state.fish[0];
+let fishHomes={};
+function fishLocation(fish){
+  const listing=state.career?.listings.find(l=>l.fishId===fish.id),home=listing?'shop-'+listing.tank:fishHomes[fish.id];
+  if(!home)return '';
+  const room=home.startsWith('shop-')?3:home.startsWith('nursery-')?2:1;
+  return 'Stanza '+room+' · Acquario #'+BettaStore.tankNumber(home)+(state.tankNames?.[home]?' · '+state.tankNames[home]:'');
+}
+const fishMaturity=fish=>fish.age<2?'Adulto tra '+(2-fish.age)+' mesi':'Maturità riproduttiva raggiunta';
 const parents = () => [state.fish.find(f => f.id === state.mother),state.fish.find(f => f.id === state.father)];
 const genotypeParams = BettaAppearance.params;
 const phenotype = BettaAppearance.describe;
@@ -155,10 +163,10 @@ function renderStage() {
   $('#fish-number').textContent = '#' + fish.id + ' · ' + (fish.gen ? 'GENERAZIONE ' + fish.gen : 'FONDATORE');
   const dev=BettaTypes.development(fish);
   $('#fish-age').textContent = dev.stage.toUpperCase()+' · '+fish.age+' MESI DI GIOCO';
-  $('#fish-development').textContent=dev.label+' · taglia '+Math.round(dev.size*100)+'%';
+  $('#fish-development').textContent=dev.label+' · '+fishMaturity(fish)+' · taglia '+Math.round(dev.size*100)+'%';
   $('#fish-name').textContent = fishLabel(fish);
-  $('#fish-form').textContent = 'Livrea: '+coatLabel(fish);
-  $('#fish-traits').textContent = 'Colori: '+colorLabel(fish);
+  $('#fish-form').textContent = 'Livrea: '+coatLabel(fish)+' · '+fishLocation(fish);
+  $('#fish-traits').textContent = 'Colori: '+colorLabel(fish)+' · '+fishMaturity(fish);
   const family=$('#fish-family');family.replaceChildren();
   if(!fish.parents)family.textContent='Fondatore · nessun genitore registrato.';
   else{family.append('Genitori: ');fish.parents.forEach((id,i)=>{if(i)family.append(' × ');const parent=state.fish.find(f=>f.id===id),archived=state.fishArchive?.find(f=>f.id===id)||state.career?.archive.find(f=>f.id===id),name=parent||archived;const label=name?name.name+' (#'+id+')':'#'+id;if(parent){const link=document.createElement('button');link.className='fish-name-link';link.textContent=label;link.onclick=()=>observeFish(id);family.append(link);}else if(archived){const link=document.createElement('button');link.className='fish-name-link';link.textContent=label;link.onclick=()=>window.bettaLife?.openGenealogy(id);family.append(link);}else family.append(label);});}
@@ -169,8 +177,7 @@ function renderStage() {
   $('#next-step').textContent=ready.allowed?'La coppia è pronta. Puoi generare quattro piccoli.':ready.reason;
   $('#advance').textContent='Passa al mese '+(state.month+1)+' ↗';
   $('#room-advance').textContent='Passa al mese '+(state.month+1)+' →';
-  const latest=state.fish.find(f=>f.id===Number($('#birth-nursery').dataset.fishId));
-  $('#birth-banner').hidden=!latest||latest.age>0;
+  $('#birth-banner').hidden=true;
 }
 function geneList(container, genes, names) {
   const nodes = Object.entries(genes).map(([key,value]) => {
@@ -339,7 +346,7 @@ function renderRoster() {
   const ordered=[...state.fish].sort((a,b)=>rosterView.sort==='name'?a.name.localeCompare(b.name,'it')||a.id-b.id:rosterView.sort==='age'?a.age-b.age||b.id-a.id:b.id-a.id);
   const count=ordered.filter(matches).length;
   $('#roster-summary').textContent=count+' di '+state.fish.length+' esemplari';
-  $('#brood-context').hidden=!rosterView.brood;
+  $('#brood-context').hidden=!rosterView.brood||!rosterView.broodName;
   $('#brood-title').textContent=rosterView.broodName;
   $('#roster-empty').hidden=count>0;
   ordered.forEach((fish,index)=>{
@@ -348,7 +355,7 @@ function renderRoster() {
     item.card.hidden=!matches(fish);
     item.card.classList.toggle('active',fish.id===state.selected);item.card.classList.toggle('multi-selected',multiSelection.has(fish.id));item.card.setAttribute('aria-selected',String(multiSelection.has(fish.id)));
     item.name.textContent=(fish.favorite?'★ ':'')+(fish.protected?'🔒 ':'')+(fish.sex==='F'?'♀ ':'♂ ')+fishLabel(fish);
-    item.detail.textContent=BettaTypes.development(fish).stage+' · '+fish.age+' mesi · '+BettaTypes.name(fish);
+    item.detail.textContent=BettaTypes.development(fish).stage+' · '+fish.age+' mesi · '+BettaTypes.name(fish)+' · '+fishMaturity(fish)+' · '+fishLocation(fish);
     item.coat.textContent=coatLabel(fish);
     item.detail.className=fish.age<2?'juvenile':'';
     const chosen=state[fish.sex==='F'?'mother':'father']===fish.id;
@@ -377,6 +384,7 @@ function renderLog() {
 }
 function render() {
   state=appStore.getState();
+  fishHomes=BettaStore.housing(state).assignments;
   if(actionFishId!==state.selected){moreActions.open=false;actionFishId=state.selected;}
   if(rosterView.brood&&!rosterView.brood.includes(state.selected))clearBrood();
   renderStage(); renderGenome(); renderParents(); renderForecast(); renderRoster(); renderLog();
@@ -415,18 +423,13 @@ $('#show-all-fish').onclick=()=>setRosterFilter('all');
 $('#clear-mother').onclick=()=>act(()=>appStore.clearParent('F'));
 $('#clear-father').onclick=()=>act(()=>appStore.clearParent('M'));
 $('#breed').onclick=()=>act(()=>{
+  const existingIds=new Set(state.fish.map(f=>f.id));
   if(appStore.breed()){
-    const fish=selected(),ids=state.fish.filter(f=>f.age===0&&JSON.stringify(f.parents)===JSON.stringify(fish.parents)).map(f=>f.id);
-    showBrood(ids,'La nuova nidiata');
-    $('#birth-nursery').dataset.fishId=fish.id;
-    $('#birth-banner').hidden=false;
-    message('Quattro piccoli sono arrivati nel vivaio. Apri la loro vasca o passa un mese per farli crescere.');
+    showBrood(state.fish.filter(f=>!existingIds.has(f.id)).map(f=>f.id),'');
   }else message(appStore.breedingStatus().reason);
 });
 function advanceMonth(){act(()=>{
-  const result=appStore.advance();
-  const growing=state.fish.filter(f=>f.age<4).length;
-  message('Mese '+state.month+'. '+(result.matured?result.matured+' pesci sono ora pronti per la riproduzione. ':'')+(growing?growing+' pesci stanno ancora crescendo (sviluppo completo a 4 mesi).':'Tutti i pesci hanno completato la crescita.'));
+  appStore.advance();
 });}
 $('#advance').onclick=advanceMonth;
 $('#room-advance').onclick=advanceMonth;
@@ -471,10 +474,12 @@ $('#multi-all').onclick=()=>{for(const id of observationIds())multiSelection.add
 // Keep the full controls visible on desktop; mobile can expand each group.
 const compactLab=matchMedia('(max-width:720px)'),labControlGroups=[];
 function controlGroup(body,id,label){const group=document.createElement('details');group.id=id;group.className='lab-control-group';const summary=document.createElement('summary'),name=document.createElement('span');name.textContent=label;summary.append(name);body.before(group);group.append(summary,body);labControlGroups.push(group);return group;}
-const filtersGroup=controlGroup(document.querySelector('.roster-selects'),'roster-filter-group','Filtri e ordinamento');
+const filterTools=document.querySelector('.roster-tools'),advancedFields=document.createElement('div');advancedFields.className='roster-advanced-fields';filterTools.append(advancedFields);
+for(const id of ['coat-filter','trait-filter','carrier-filter','age-filter'])advancedFields.append(document.getElementById(id).closest('label'));
+const filtersGroup=controlGroup(advancedFields,'roster-filter-group','Filtri avanzati');labControlGroups.splice(labControlGroups.indexOf(filtersGroup),1);filtersGroup.open=false;
 const filterBadge=document.createElement('span');filterBadge.id='active-filter-count';filterBadge.className='control-count';filterBadge.setAttribute('aria-label','Filtri attivi');filtersGroup.querySelector('summary').append(filterBadge);
-const resetControls=document.createElement('button');resetControls.id='reset-roster-controls';resetControls.type='button';resetControls.className='secondary';resetControls.textContent='Azzera filtri e ordinamento';resetControls.onclick=()=>{rosterView.sort='recent';$('#fish-sort').value='recent';setRosterFilter('all');};filtersGroup.append(resetControls);
+const resetControls=document.createElement('button');resetControls.id='reset-roster-controls';resetControls.type='button';resetControls.className='secondary';resetControls.textContent='Azzera filtri e ordinamento';resetControls.onclick=()=>{rosterView.sort='recent';$('#fish-sort').value='recent';setRosterFilter('all');};filterTools.append(resetControls);
 controlGroup(zoomControl,'roster-display-group','Visualizzazione schede');
 const bulkGroup=controlGroup(multiToolbar,'roster-bulk-group','Azioni su più pesci'),bulkBadge=document.createElement('span');bulkBadge.id='bulk-selection-count';bulkBadge.className='control-count';bulkBadge.setAttribute('aria-label','Pesci selezionati');bulkGroup.querySelector('summary').append(bulkBadge);
-function refreshFilterBadge(){const badge=document.getElementById('active-filter-count');if(!badge)return;const count=['filter','coat','trait','carrier','age'].filter(k=>rosterView[k]!=='all').length+(rosterView.sort!=='recent'?1:0);badge.textContent=String(count);badge.hidden=!count;}
+function refreshFilterBadge(){const badge=document.getElementById('active-filter-count');if(!badge)return;const count=['coat','trait','carrier','age'].filter(k=>rosterView[k]!=='all').length;badge.textContent=String(count);badge.hidden=!count;}
 function alignLabGroups(){for(const group of labControlGroups)group.open=!compactLab.matches;}alignLabGroups();compactLab.addEventListener('change',alignLabGroups);refreshFilterBadge();refreshMultiSelection();

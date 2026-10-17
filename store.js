@@ -85,7 +85,7 @@ window.BettaStore = (() => {
     if(key==='community'||state.mode!=='career')return true;
     const c=state.career;
     if(key.startsWith('shop-'))return Number(key.slice(5))<c.shopSlots;
-    if(key.startsWith('nursery-'))return Number(key.slice(8))<8+c.expansions*6;
+    if(key.startsWith('nursery-'))return Number(key.slice(8))<Math.min(tanksPerRoom,8+c.expansions*6)||Object.entries(state.tankAssignments||{}).some(([id,home])=>home===key&&state.fish.some(f=>f.id===Number(id)));
     const index=homeKeys.indexOf(key);
     return index>=0&&index<Math.min(homeKeys.length,8+c.expansions*4);
   }
@@ -93,7 +93,7 @@ window.BettaStore = (() => {
     const assignments=assignTanks(state),slots=new Map();
     const make=(key,name)=>({key,id:key,number:tankNumber(key),name,fish:[]});
     for(const key of homeKeys){const type=key.replace(/-male$/,''),name=window.BettaTypes.forms.find(f=>f.id===type)?.name||({dumbo:'Dumbo',imbellis:'Imbellis',hendra:'Hendra'})[type]||type;slots.set(key,make(key,state.mode==='career'?'Acquario '+(homeKeys.indexOf(key)+1):isDiscus?'Discus '+(homeKeys.indexOf(key)+1):name+(key.endsWith('-male')?' · Maschio':' · Femmina')));}
-    const last=Math.max(tanksPerRoom-1,state.mode==='career'?7+state.career.expansions*6:0,...Object.values(assignments).filter(k=>k.startsWith('nursery-')).map(k=>Number(k.slice(8))));
+    const last=Math.max(tanksPerRoom-1,state.mode==='career'?Math.min(tanksPerRoom-1,7+state.career.expansions*6):0,...Object.values(assignments).filter(k=>k.startsWith('nursery-')).map(k=>Number(k.slice(8))));
     for(let i=0;i<Math.ceil((last+1)/tanksPerRoom)*tanksPerRoom;i++)slots.set('nursery-'+i,make('nursery-'+i,'Vasca '+(i+1)));
     slots.set('community',make('community','Acquario zero'));
     for(const f of state.fish){const key=assignments[f.id];if(key)slots.get(key).fish.push(f);}

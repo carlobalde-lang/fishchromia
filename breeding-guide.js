@@ -25,7 +25,7 @@ window.BettaBreedingGuide=(()=>{
   return {id,pairs:pairs.slice(0,3),missing,donors,steps:steps.slice(0,2),limited:groups.F.size>128||groups.M.size>128};
  }
  function marketPair(state,id){
-  const offers=BettaCareer.offers(state).filter(o=>o.colorId!==id),goal=target(id),masked=[...maskLoci].some(k=>goal.genes[k]===k+k),pairs=[];
+  const offers=BettaCareer.offers(state).filter(o=>o.colorId!==id&&!BettaCareer.matches(target(o.colorId)).includes(id)),goal=target(id),masked=[...maskLoci].some(k=>goal.genes[k]===k+k),pairs=[];
   for(let i=0;i<offers.length;i++)for(let j=i+1;j<offers.length;j++){
    const a=offers[i],b=offers[j],mother=BettaTypes.specimen('halfmoon',a.colorId,'F'),father=BettaTypes.specimen('halfmoon',b.colorId,'M');
    if(probability(mother,father,id)>0)continue;

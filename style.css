@@ -282,3 +282,36 @@ html:not([data-language-ready]) .loading-screen,html:not([data-language-ready]) 
 #career-panel{scroll-padding-top:calc(var(--career-header-height,80px) + 76px)}#career-panel>header{top:-24px;min-height:64px;align-items:center;gap:12px}#career-panel .career-tabs{top:calc(var(--career-header-height,80px) - 24px);display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;scrollbar-width:thin;scrollbar-color:#8d9e8e #102a32;z-index:6}#career-panel .career-tabs button{flex:1 0 auto;min-height:44px;white-space:nowrap;padding:10px 14px}#career-panel .career-tabs button[aria-pressed=true]{background:#dfca8b;color:#132d33;border-color:#dfca8b;font-weight:700}#career-panel .career-tabs button:focus-visible{outline:2px solid #dfca8b;outline-offset:-3px}#career-panel>header{z-index:7}#career-panel .career-stats{gap:8px;flex-wrap:wrap}#career-panel .album-coat-navigation{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 16px}#career-panel .album-coat-navigation button{min-height:44px;margin:0}#career-panel #album-prev-coat,#career-panel #album-next-coat{width:44px;font-size:22px;padding:4px;flex-shrink:0}
 @media(max-width:720px){#career-panel:not(.focused-guide)>header{top:-24px}#career-panel .career-tabs{padding:8px 0;gap:8px}#career-panel .career-tabs button{flex:0 0 auto}#career-panel .album-coat-navigation{gap:8px}#career-panel .album-coat-navigation button:last-child{flex:1}#career-panel.focused-guide>header{top:0}}
 #career-panel .guide-purchase-result{padding:14px;margin:18px 0;border:1px solid #8fae86;border-radius:10px;background:#1d3e37;color:#f0eee3;scroll-margin-block:150px}#career-panel .guide-purchase-result p{margin:0 0 10px}#career-panel .guide-purchase-result button{display:block;margin-top:12px;min-height:44px}#career-panel .guide-purchase-result[data-kind=error]{border-color:#c59479;background:#503b31}
+/* Compact genealogy: keep portraits, identity and actions together. */
+.pedigree-tree li{padding:4px 0}
+.pedigree-card{padding:10px;gap:4px}
+.pedigree-preview{height:88px;aspect-ratio:auto}
+.pedigree-card small{line-height:1.35}
+.pedigree-card small:empty{display:none}
+.pedigree-name{font-size:14px;line-height:1.3}
+.pedigree-actions{display:flex;gap:6px;margin-top:4px}
+.pedigree-actions button{flex:1;min-width:0}
+.pedigree-card button.secondary{min-height:32px;padding:6px;font-size:12px;line-height:1.3}
+.pedigree-tree ul:before{top:58px}
+.pedigree-tree ul>li:before{top:58px}
+.pedigree-viewport{scrollbar-color:#718d7f #132a29;scrollbar-width:thin}
+@media(max-width:720px){.pedigree-preview{height:76px}.pedigree-card button.secondary{min-height:44px}.pedigree-tree ul:before,.pedigree-tree ul>li:before{top:52px}.pedigree-actions{gap:4px}}
+@media(max-width:720px){#career-panel:not(.focused-guide)>header{top:calc(-1 * var(--popup-padding))}#career-panel .career-tabs{top:calc(var(--career-header-height,80px) - var(--popup-padding))}}
+#choose-observed-parent[hidden]{display:none!important}
+/* Roster filters: primary controls stay visible; specialist filters expand. */
+#laboratory .roster-tools{display:grid;grid-template-columns:minmax(200px,1fr) minmax(300px,1fr);gap:12px;align-items:end}
+#laboratory .roster-selects{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));min-width:0;margin:0}
+#laboratory .roster-selects label:first-child{grid-column:auto}
+#laboratory #roster-filter-group{grid-column:1/-1;width:100%;margin:0;border:0;border-top:1px solid #49645e;border-radius:0;background:transparent;padding:0}
+#laboratory #roster-filter-group>summary{display:flex;align-items:center;gap:10px;min-height:44px;padding:8px 0;color:#dfca8b;cursor:pointer;list-style:none}
+#laboratory #roster-filter-group>summary::-webkit-details-marker{display:none}
+#laboratory #roster-filter-group>summary:after{content:'+';margin-left:auto;font-size:20px}
+#laboratory #roster-filter-group[open]>summary:after{content:'−'}
+#laboratory #roster-filter-group:not([open])>.roster-advanced-fields{display:none}
+#laboratory .roster-advanced-fields{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:4px 0 12px}
+#laboratory .roster-advanced-fields label{display:flex;flex-direction:column;gap:6px;min-width:0;font-size:11px;color:#bdd1c4}
+#laboratory .roster-advanced-fields select{width:100%;min-width:0;min-height:40px;background:#102d34;color:#edf0df;border:1px solid #49645e;border-radius:7px;padding:9px;font:inherit;font-size:12px}
+#laboratory #reset-roster-controls{grid-column:1/-1;justify-self:end;margin:0;min-height:44px}
+#roster-filter-group>summary:focus-visible{outline:2px solid #dfca8b;outline-offset:3px;border-radius:4px}
+@media(max-width:720px){#laboratory .roster-tools{grid-template-columns:minmax(0,1fr)}#laboratory .roster-selects{grid-template-columns:repeat(2,minmax(0,1fr))}#laboratory .roster-advanced-fields{grid-template-columns:repeat(2,minmax(0,1fr))}#laboratory .roster-tools select,#laboratory .roster-tools input{min-height:44px}#laboratory #reset-roster-controls{justify-self:stretch}#laboratory #roster-filter-group>summary{padding-inline:0}}
+.brand-home{display:block;color:inherit;text-decoration:none;cursor:pointer;border-radius:6px}.brand-home:focus-visible{outline:2px solid #dfca8b;outline-offset:5px}.brand-home:hover{opacity:.85}

@@ -21,8 +21,9 @@
    card.append(node('p',BettaTypes.name(f),'pedigree-traits'),node('small',BettaTypes.colorName(f)));
    const details=node('details'),summary=node('summary','Genotipo'),genes=node('div',undefined,'pedigree-genes');details.open=openGenotypes.has(id);details.ontoggle=()=>{if(details.isConnected){if(details.open)openGenotypes.add(id);else openGenotypes.delete(id);}};
    for(const [field,title] of [['form','Forma'],['genes','Colore']]){genes.append(node('strong',title));for(const [locus,pair] of Object.entries(f[field])){const value=node('span');value.append(node('span',field==='form'?BettaTypes.labels[locus]||locus:locus),': ',node('b',pair));genes.append(value);}}
-   details.append(summary,genes);card.append(details,button('Passaporto',()=>window.bettaPassport?.open(id)));
-   if(alive)card.append(button('Osserva',()=>{dialog.close();window.betta3d?.openLaboratory();store.select(id);}));
+   const actions=node('div',undefined,'pedigree-actions');
+   details.append(summary,genes);card.append(details,actions);actions.append(button('Passaporto',()=>window.bettaPassport?.open(id)));
+   if(alive)actions.append(button('Osserva',()=>{dialog.close();window.betta3d?.openLaboratory();store.select(id);}));
   }
   item.append(card);
   if(seen.has(id)){card.append(node('small','Ascendenza già mostrata in questo ramo.'));return item;}

@@ -284,8 +284,10 @@
    }
   }else{
    content.append(node('h3','Amplia la casa'),node('p','Stanza 1: riproduttori · Stanza 2: crescita · Stanza 3: negozio. Ogni ampliamento sblocca fino a 4 acquari di allevamento e 6 vasche di crescita, e aggiunge 24 posti. Tutti gli slot possono essere sbloccati.'));
-   content.append(node('p','Capienza attuale: '+c.capacity+' pesci.'),button('Sblocca acquari e aggiungi 24 posti · '+(250+c.expansions*150)+' ◈',()=>action('expand')));
-   content.append(node('p','Vetrine allestite: '+c.shopSlots+' / 24.'),button(c.shopSlots<24?'Allestisci altre 4 vetrine · '+c.shopSlots*60+' ◈':'Negozio completo',()=>action('shopExpand')));
+   const complete=c.expansions>=BettaCareer.expansionLimit()||c.capacity>=3000,expand=button(complete?'Tutti gli acquari disponibili sono già sbloccati.':'Sblocca acquari e aggiungi 24 posti · '+(250+c.expansions*150)+' ◈',()=>action('expand'));expand.disabled=complete||c.cash<250+c.expansions*150;
+   content.append(node('p','Capienza attuale: '+c.capacity+' pesci.'),expand);
+   const shopComplete=c.shopSlots>=BettaCareer.tankLimit(),shopExpand=button(shopComplete?'Negozio completo':'Allestisci altre 4 vetrine · '+c.shopSlots*60+' ◈',()=>action('shopExpand'));shopExpand.disabled=shopComplete||c.cash<c.shopSlots*60;
+   content.append(node('p','Vetrine allestite: '+c.shopSlots+' / '+BettaCareer.tankLimit()+'.'),shopExpand);
    content.append(node('p','In evidenza questo mese: '+BettaCareer.byId(BettaCareer.demand(s.month)).name+' · valore consigliato +25%.'));
   }
   restoreView();

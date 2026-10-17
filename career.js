@@ -1,5 +1,7 @@
 'use strict';
 window.BettaCareer=(()=>{
+ const tankLimit=()=>window.FishCollection?.tanks||24;
+ const expansionLimit=()=>Math.ceil(Math.max(0,tankLimit()-8)/4);
  const regulars=[
   {id:'ada',name:'Ada',taste:'royal',description:'Ama le livree blu e gli allevamenti con una storia.'},
   {id:'luca',name:'Luca',taste:'red',description:'Cerca colori rossi intensi.'},
@@ -142,9 +144,9 @@ window.BettaCareer=(()=>{
    if(reward){c.trophies.push(result);c.trophies=c.trophies.slice(-120);c.cash+=reward;c.reputation+=medal==='oro'?3:medal==='argento'?2:1;}
    state.log.unshift(result.title+': '+score+' punti · '+medal+' · +'+reward+' monete.');
   }else if(action==='expand'){
-   if(c.capacity>=3000)throw Error('Capienza massima raggiunta.');spend(250+c.expansions*150);c.expansions++;c.capacity=Math.min(3000,c.capacity+24);
+   if(c.expansions>=expansionLimit()||c.capacity>=3000)throw Error('Tutti gli acquari disponibili sono già sbloccati.');spend(250+c.expansions*150);c.expansions++;c.capacity=Math.min(3000,c.capacity+24);
   }else if(action==='shopExpand'){
-   if(c.shopSlots>=24)throw Error('Negozio già completo.');spend(c.shopSlots*60);c.shopSlots+=4;
+   if(c.shopSlots>=tankLimit())throw Error('Negozio già completo.');spend(c.shopSlots*60);c.shopSlots=Math.min(tankLimit(),c.shopSlots+4);
   }else throw Error('Azione sconosciuta.');
   state.log=state.log.slice(0,5);return state;
  }
@@ -169,5 +171,5 @@ window.BettaCareer=(()=>{
    c.customerRemaining=(15+rng()*25)/Math.min(2,1+c.reputation/100);
    state.log=state.log.slice(0,5);return state;
  }
- return {offerSpecimen,orderMatches,orderRequirements,regulars,contest,contestScore,starters,initial,normalize,matches,displayName,coatName,signature,value,chance,offers,byId,demand,transact,discover,advance,customer};
+ return {tankLimit,expansionLimit,offerSpecimen,orderMatches,orderRequirements,regulars,contest,contestScore,starters,initial,normalize,matches,displayName,coatName,signature,value,chance,offers,byId,demand,transact,discover,advance,customer};
 })();
